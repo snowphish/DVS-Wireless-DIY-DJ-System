@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DVS Kit Flasher</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+  :root {
+    --bg: #0f1216; --card: #1a1f26; --line: #2a323d;
+    --fg: #e8edf2; --muted: #9aa7b4; --accent: #38bd8b; --accent2: #2f7bd6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.55 "Segoe UI", system-ui, Arial, sans-serif;
+    display: flex; justify-content: center; padding: 32px 16px;
+  }
+  main { width: 100%; max-width: 640px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px; margin-bottom: 18px;
+  }
+  label.field { display: block; font-weight: 600; margin-bottom: 8px; }
+  select {
+    width: 100%; padding: 12px 14px; font-size: 16px;
+    background: #11161c; color: var(--fg);
+    border: 1px solid var(--line); border-radius: 10px;
+  }
+  .desc { color: var(--muted); margin: 16px 0 20px; min-height: 44px; }
+  .chip {
+    display: inline-block; font-size: 12px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; margin-right: 6px;
+    background: #11321f; color: var(--accent); border: 1px solid #1c5637;
+  }
+  .chip.blue { background: #10233b; color: #6fb2ff; border-color: #23456f; }
+  esp-web-install-button { --esp-tools-button-color: var(--accent); }
+  esp-web-install-button[install-unsupported] + .unsupported { display: block; }
+  .unsupported {
+    display: none; color: #ffb4a2; background: #2a1512;
+    border: 1px solid #532420; border-radius: 10px; padding: 12px 14px; margin-top: 14px;
+  }
+  .btnrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  ol { color: var(--muted); padding-left: 20px; }
+  ol b { color: var(--fg); }
+  a { color: var(--accent2); }
+  .foot { color: var(--muted); font-size: 13px; text-align: center; margin-top: 8px; }
+  code { background: #11161c; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>DVS Kit Flasher</h1>
+  <p class="sub">Flash your board right from this page — no software to install.
+     Works in <b>Chrome</b> or <b>Edge</b> on desktop.</p>
+
+  <div class="card">
+    <label class="field" for="target">1 — Choose what you're flashing</label>
+    <select id="target">
+      <option value="tx">Transmitter puck — gyro platter unit (ESP32-C3)</option>
+      <option value="rx-traktor">Receiver — Traktor Scratch MK2 (ESP32-S3)</option>
+      <option value="rx-serato">Receiver — Serato CV02 (ESP32-S3)</option>
+    </select>
+
+    <p class="desc" id="desc"></p>
+
+    <div class="btnrow">
+      <esp-web-install-button id="installer" manifest="manifest-tx.json">
+        <button slot="activate">Connect &amp; Flash</button>
+        <span slot="unsupported"></span>
+      </esp-web-install-button>
+      <span id="chips"></span>
+    </div>
+    <div class="unsupported">
+      This browser can't flash over USB. Open this page in desktop
+      <b>Chrome</b> or <b>Edge</b> (Web Serial isn't in Safari or Firefox).
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field">2 — Steps</label>
+    <ol>
+      <li>Plug the board into this computer with a <b>data</b> USB-C cable
+          (charge-only cables won't work).</li>
+      <li>On a battery-powered puck, switch it <b>OFF</b> first — flash over
+          USB only.</li>
+      <li>Click <b>Connect &amp; Flash</b>, pick the board's serial port, and
+          wait for "flashing complete."</li>
+      <li>After flashing the <b>receiver</b>, open its serial console (the
+          Logs button on the dialog) to read its MAC address for pairing.</li>
+    </ol>
+  </div>
+
+  <p class="foot">Compatible with Serato and Traktor timecode. Not affiliated
+     with or endorsed by Serato or Native Instruments.</p>
+</main>
+
+<script>
+  const DESC = {
+    "tx": {
+      manifest: "manifest-tx.json",
+      text: "The gyro unit that rides on the platter. Flash one per deck — after flashing, set its Deck ID and receiver MAC (see the kit guide), then do the one-time spin calibration.",
+      chips: ['<span class="chip">ESP32-C3</span>', '<span class="chip blue">one per deck</span>']
+    },
+    "rx-traktor": {
+      manifest: "manifest-rx-traktor.json",
+      text: "The base station that plugs into your audio interface and generates Traktor Scratch MK2 timecode for two decks. Use this one for Traktor.",
+      chips: ['<span class="chip">ESP32-S3</span>', '<span class="chip blue">Traktor</span>']
+    },
+    "rx-serato": {
+      manifest: "manifest-rx-serato.json",
+      text: "The base station that generates Serato CV02 timecode for two decks. Use this one for Serato or Mixxx.",
+      chips: ['<span class="chip">ESP32-S3</span>', '<span class="chip blue">Serato / Mixxx</span>']
+    }
+  };
+
+  const sel = document.getElementById("target");
+  const installer = document.getElementById("installer");
+  const desc = document.getElementById("desc");
+  const chips = document.getElementById("chips");
+
+  function apply() {
+    const d = DESC[sel.value];
+    // Re-create the button so ESP Web Tools re-reads the new manifest cleanly.
+    installer.manifest = d.manifest;
+    installer.setAttribute("manifest", d.manifest);
+    desc.textContent = d.text;
+    chips.innerHTML = d.chips.join(" ");
+  }
+  sel.addEventListener("change", apply);
+  apply();
+</script>
+</body>
+</html>
