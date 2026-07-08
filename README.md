@@ -15,6 +15,10 @@ rotation speed over ESP-NOW to a receiver, which generates timecode
 **compatible with Serato CV02 or Traktor Scratch MK2** into the DJ
 software's audio interface, depending on which receiver sketch you flash.
 
+> ⚡ **Flash your board in-browser — no install:**
+> **<https://snowphish.github.io/DVS-Wireless-DIY-DJ-System/>**
+> (Chrome or Edge on desktop; pick Transmitter / Receiver-Traktor / Receiver-Serato.)
+
 ```
  platter                        2.4 GHz                       line out
 ┌─────────────────┐   ESP-NOW broadcast, 500 Hz   ┌──────────────────────┐
