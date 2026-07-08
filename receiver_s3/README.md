@@ -1,4 +1,4 @@
-# receiver_s3 — dual Serato CV02 timecode generator
+# receiver_s3 — dual timecode generator, compatible with Serato CV02
 
 > **Lineage:** based on [FelipeAlme/DVS-Wireless-DIY-DJ-System](https://github.com/FelipeAlme/DVS-Wireless-DIY-DJ-System)
 > by Felipe Alme, who started this project.

@@ -1,4 +1,4 @@
-# receiver_s3_traktor — dual Traktor Scratch MK2 timecode generator
+# receiver_s3_traktor — dual timecode generator, compatible with Traktor Scratch MK2
 
 > **Lineage:** based on [FelipeAlme/DVS-Wireless-DIY-DJ-System](https://github.com/FelipeAlme/DVS-Wireless-DIY-DJ-System)
 > by Felipe Alme, who started this project.

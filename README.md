@@ -31,8 +31,8 @@ software's audio interface, depending on which receiver sketch you flash.
 | Path | What it is |
 |---|---|
 | [transmitter_c3/](transmitter_c3/) | Platter puck: ESP32-C3 + MPU6050, sends RPM at 500 Hz |
-| [receiver_s3/](receiver_s3/) | Receiver generating **Serato CV02** timecode (Serato, Mixxx) |
-| [receiver_s3_traktor/](receiver_s3_traktor/) | Receiver generating **Traktor Scratch MK2** timecode |
+| [receiver_s3/](receiver_s3/) | Receiver generating timecode compatible with **Serato CV02** (Serato, Mixxx) |
+| [receiver_s3_traktor/](receiver_s3_traktor/) | Receiver generating timecode compatible with **Traktor Scratch MK2** |
 | [CAD Cases/](CAD%20Cases/) | 3D-printed enclosures (Fusion 360 sources + .3mf) and build photos |
 
 One receiver drives **two decks** (two DACs); each deck needs its own
