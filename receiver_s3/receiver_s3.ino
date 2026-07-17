@@ -55,7 +55,7 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // ===== Audio =========================================================
 #define SAMPLE_RATE 44100
-#define DMA_BUF_LEN 32            // small buffers = low output latency
+#define DMA_BUF_LEN 64
 #define DMA_BUF_COUNT 4
 
 // ===== Timecode response ==============================================
@@ -100,7 +100,9 @@ typedef struct {
   int         bckPin, lrckPin, dataPin;
   const char *taskName;
   float       filteredRpm;
-  int64_t     cv02Phase;         // 64-bit phase => clean reverse + full sequence
+  uint32_t    cv02Phase;         // 16 fractional bits; wraps every 65536 cycles,
+                                 // so only the first 65536 CV02 bits are used
+                                 // (matches upstream; fine for Serato REL mode)
 } audio_deck_state;
 
 deck_state deckStates[2];
@@ -343,33 +345,27 @@ void setupI2S(audio_deck_state *deck) {
 #endif
 }
 
-// 32 fractional phase bits => frequency granularity 44100/2^32 ~ 1e-5 Hz.
-// (16 bits quantized pitch in ~0.07% steps, and truncation biased it low.)
-#define CV02_FRAC_BITS 32
-#define CV02_FRAC_ONE  4294967296.0f   // 2^32
-
 // rpm -> per-sample phase step. Called once per DMA buffer (rpm only
 // changes per buffer, so per-sample recomputation was pure overhead).
 // Deadzone compares RPM: comparing the *ratio* against DEADZONE_RPM zeroed
 // everything below 0.04*33.3 = 1.3 RPM and killed slow crawls; the
 // transmitter's own 0.2 RPM deadzone is the intended floor.
-static int64_t rpmToPhaseStep(float rpm) {
+static int32_t rpmToPhaseStep(float rpm) {
   if (fabsf(rpm) < DEADZONE_RPM) return 0;
   float ratio = rpm / BASE_RPM;
   if (ratio >  MAX_RPM_RATIO) ratio =  MAX_RPM_RATIO;
   if (ratio < -MAX_RPM_RATIO) ratio = -MAX_RPM_RATIO;
-  return (int64_t)llroundf(ratio * ((float)CV02_RESOLUTION * (CV02_FRAC_ONE / SAMPLE_RATE)));
+  return (int32_t)lroundf(ratio * ((float)CV02_RESOLUTION * 65536.0f / SAMPLE_RATE));
 }
 
 // L = -cos, R = sin (quadrature); bit stream amplitude-modulates the pair.
-// int64 phase => glitch-free reverse/backspin and full sequence.
-static inline void renderCv02Sample(audio_deck_state *deck, int64_t phaseStep,
+// uint32 phase wraparound handles reverse/backspin like upstream.
+static inline void renderCv02Sample(audio_deck_state *deck, int32_t phaseStep,
                                     int16_t *leftOut, int16_t *rightOut) {
-  deck->cv02Phase += phaseStep;
+  deck->cv02Phase += (uint32_t)phaseStep;
 
-  int64_t cyc = deck->cv02Phase >> CV02_FRAC_BITS;
-  uint32_t cycleIndex = (uint32_t)(((cyc % (int64_t)CV02_LENGTH) + (int64_t)CV02_LENGTH) % (int64_t)CV02_LENGTH);
-  float frac = (float)(uint32_t)deck->cv02Phase * (1.0f / CV02_FRAC_ONE);
+  uint32_t cycleIndex = (deck->cv02Phase >> 16) % CV02_LENGTH;
+  float frac = (float)(deck->cv02Phase & 0xFFFF) * (1.0f / 65536.0f);
 
   float angle = frac * 6.28318530718f;
   float sine = sinf(angle), cosine = cosf(angle);
@@ -393,12 +389,10 @@ float readTargetRpm(uint8_t deckId) {
 void audioTask(void *param) {
   audio_deck_state *deck = (audio_deck_state *)param;
   int16_t buffer[DMA_BUF_LEN * 2];
-  const int64_t phaseSpan = (int64_t)CV02_LENGTH << CV02_FRAC_BITS;
   while (true) {
     float target = readTargetRpm(deck->deckId);
     deck->filteredRpm += (target - deck->filteredRpm) * RPM_SMOOTHING;
-    int64_t phaseStep = rpmToPhaseStep(deck->filteredRpm);
-    deck->cv02Phase %= phaseSpan;      // fold so the accumulator never overflows
+    int32_t phaseStep = rpmToPhaseStep(deck->filteredRpm);
     for (int i = 0; i < DMA_BUF_LEN; i++) {
       int16_t l = 0, r = 0;
       renderCv02Sample(deck, phaseStep, &l, &r);
