@@ -36,10 +36,10 @@ ESP Web Tools flashes one **merged** image per target at offset 0
 ```bash
 # Transmitter (ESP32-C3)
 esptool.py --chip esp32c3 merge_bin -o firmware/transmitter-c3.bin \
-  0x0    transmitter_c3.ino.bootloader.bin \
-  0x8000 transmitter_c3.ino.partitions.bin \
+  0x0    transmitter_c3_mpu6050.ino.bootloader.bin \
+  0x8000 transmitter_c3_mpu6050.ino.partitions.bin \
   0xe000 boot_app0.bin \
-  0x10000 transmitter_c3.ino.bin
+  0x10000 transmitter_c3_mpu6050.ino.bin
 
 # Receiver, Traktor (ESP32-S3)
 esptool.py --chip esp32s3 merge_bin -o firmware/receiver-traktor-s3.bin \
@@ -48,8 +48,11 @@ esptool.py --chip esp32s3 merge_bin -o firmware/receiver-traktor-s3.bin \
   0xe000 boot_app0.bin \
   0x10000 receiver_s3_traktor.ino.bin
 
-# Receiver, Serato (ESP32-S3) — same, with the receiver_s3 build
+# Receiver, Serato (ESP32-S3) — same, with the receiver_s3_cv02 build
 ```
+
+> Tip: `arduino-cli compile --output-dir <dir> <sketch>` writes a ready-made
+> `*.ino.merged.bin` — no manual esptool merge step needed.
 
 - `boot_app0.bin` lives in the ESP32 core install
   (`.../packages/esp32/hardware/esp32/<ver>/tools/partitions/`).

@@ -22,9 +22,10 @@ software's audio interface, depending on which receiver sketch you flash.
 ```
  platter                        2.4 GHz                       line out
 ┌─────────────────┐   ESP-NOW broadcast, 500 Hz   ┌──────────────────────┐
-│ transmitter_c3  │ ────────────────────────────► │ receiver_s3 (CV02)   │ ──► deck A
-│ ESP32-C3        │                               │   or                 │ ──► deck B
-│ + MPU6050 gyro  │   (second puck = deck 2)      │ receiver_s3_traktor  │
+│ transmitter_c3_ │ ────────────────────────────► │ receiver_s3_cv02     │ ──► deck A
+│ mpu6050         │                               │   or                 │ ──► deck B
+│ ESP32-C3        │   (second puck = deck 2)      │ receiver_s3_traktor  │
+│ + MPU6050 gyro  │                               │                      │
 │ + battery       │ ◄──────────────────────────── │ ESP32-S3 + 2x        │
 └─────────────────┘      WELCOME / PING           │ PCM5102A I2S DACs    │
                                                   └──────────────────────┘
@@ -34,8 +35,8 @@ software's audio interface, depending on which receiver sketch you flash.
 
 | Path | What it is |
 |---|---|
-| [transmitter_c3/](transmitter_c3/) | Platter puck: ESP32-C3 + MPU6050, sends RPM at 500 Hz |
-| [receiver_s3/](receiver_s3/) | Receiver generating timecode compatible with **Serato CV02** (Serato, Mixxx) |
+| [transmitter_c3_mpu6050/](transmitter_c3_mpu6050/) | Platter puck: ESP32-C3 + MPU6050, sends RPM at 500 Hz |
+| [receiver_s3_cv02/](receiver_s3_cv02/) | Receiver generating timecode compatible with **Serato CV02** (Serato, Mixxx) |
 | [receiver_s3_traktor/](receiver_s3_traktor/) | Receiver generating timecode compatible with **Traktor Scratch MK2** |
 | [CAD Cases/](CAD%20Cases/) | 3D-printed enclosures (Fusion 360 sources + .3mf) and build photos |
 
@@ -46,12 +47,12 @@ flashed.
 
 ## Quick start
 
-1. **Flash the receiver** (`receiver_s3` for Serato/Mixxx, or
+1. **Flash the receiver** (`receiver_s3_cv02` for Serato/Mixxx, or
    `receiver_s3_traktor` for Traktor). ESP32 Arduino core 3.x, needs the
    **Adafruit NeoPixel** library.
 2. Open the Serial Monitor at 115200 and note the boot line:
    `transmitter: uint8_t receiverMAC[] = { 0x.., ... };`
-3. **Paste that MAC** into `transmitter_c3.ino`, set `DECK_ID`, and flash
+3. **Paste that MAC** into `transmitter_c3_mpu6050.ino`, set `DECK_ID`, and flash
    the puck(s).
 4. **Calibrate** (once per puck, ever): power the puck with the platter
    **stopped** (gyro zero), then start the platter at **0% pitch** and leave
@@ -59,7 +60,7 @@ flashed.
    and stores its gyro scale trim in flash. Watch it on the **receiver's**
    Serial Monitor (`EVT deck 1: spin-cal LOCKED, trim=...`); the puck's own
    USB is unreachable while it spins.
-   See [transmitter_c3/README.md](transmitter_c3/README.md).
+   See [README-features.md](README-features.md).
 5. Connect the receiver's DAC outputs to the sound card inputs your DJ
    software expects timecode on, select the matching control vinyl type
    (Serato 2nd Ed. / Traktor Vinyl MK2), **relative mode**, and play.

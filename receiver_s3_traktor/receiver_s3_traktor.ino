@@ -57,10 +57,53 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 #define MSG_PING 4
 #define MSG_EVENT 5   // transmitter status relayed to our serial (its own
                       // USB is unreachable while it spins on battery)
+#define MSG_BUTTONS 6 // dicer button state (unit 3)
 #define PING_INTERVAL_MS 500
 #define DECK_TIMEOUT_MS 1000
 
-#define LED_UPDATE_MS 150
+// ===== Dicer (unit 3) -> USB-MIDI [TEST] ==============================
+// The dicer sends its full button state as MSG_BUTTONS; we diff states
+// into MIDI note on/off on the S3's NATIVE USB port. Requires Tools >
+// USB Mode: "USB-OTG (TinyUSB)" - in CDC/JTAG mode MIDI compiles out
+// (with a warning) and everything else still works.
+// Note = MIDI_BASE_NOTE + mode*6 + button, so every mode page is a
+// distinct set of notes for MIDI-learn.
+#define DICER_ID 3
+#define USB_MIDI_ENABLE 0         // production: MIDI/dicer output disabled.
+                                  // The experimental dicer unit lives in
+                                  // Experimental/; set to 1 + build in USB-OTG
+                                  // (TinyUSB) mode to re-enable dicer->MIDI.
+#define MIDI_CHANNEL 1
+#define MIDI_BASE_NOTE 36
+#if USB_MIDI_ENABLE && defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0
+  #include "USB.h"
+  #include "USBMIDI.h"
+  #define USB_MIDI_ACTIVE 1
+  USBMIDI MIDI;
+#else
+  #define USB_MIDI_ACTIVE 0
+  #if USB_MIDI_ENABLE
+    #warning "USB-MIDI disabled: set Tools > USB Mode to USB-OTG (TinyUSB)"
+  #endif
+#endif
+
+#define LED_UPDATE_MS 50          // fast enough for clean low-batt blinking
+
+// [TEST] Low-battery indication: a puck reporting LOW/CRITICAL makes the
+// status LED blink (deck 1 = slow on/off, deck 2 = two fast pulses,
+// both = three fast pulses). The state expires if the puck stops
+// re-sending it (it repeats every 10 s while low).
+#define BATT_LOW_HOLD_MS 30000
+
+// [TEST] Link-loss failover: if a puck goes silent mid-performance, keep
+// generating timecode at its last STABLE rpm (one that held within
+// +-FAILOVER_STABLE_BAND_RPM for FAILOVER_STABLE_MS) instead of stopping
+// the deck. Scratching never becomes the held value; a stopped platter
+// holds 0, so "stop platter, then switch the puck off" still ends clean.
+// The LED still drops to orange/red so the fallback is visible.
+#define FAILOVER_ENABLE 1
+#define FAILOVER_STABLE_BAND_RPM 0.75f
+#define FAILOVER_STABLE_MS 2000
 
 // ===== Serial debug (optional; not used to carry timecode) ============
 #define DEBUG_SERIAL 1
@@ -164,11 +207,25 @@ uint8_t  pendingEventDeck = 0;
 uint8_t  pendingEventCode = 0;
 uint32_t pendingEventValue = 0;
 
+volatile bool     dicerSeen = false;
+volatile uint16_t dicerMask = 0;
+volatile uint8_t  dicerMode = 0;
+uint16_t dicerPrevMask = 0;
+uint8_t  dicerActiveNote[6] = { 0, 0, 0, 0, 0, 0 };
+
 uint8_t *traktorPackedBits = NULL;   // 512 KB in PSRAM
 
 uint32_t lastLedMillis = 0;
-int      lastLedCount = -1;
+uint32_t lastLedPacked = 0xFFFFFFFFUL;
+uint32_t deckBattLowUntil[2] = { 0, 0 };
 uint32_t lastDebugPrintMillis = 0;
+
+// Failover state: written only by each deck's own audio task; read by
+// loop() for logging (transient races there are harmless).
+float    failStableRpm[2]   = { 0.0f, 0.0f };
+float    failCandRpm[2]     = { 0.0f, 0.0f };
+uint32_t failCandSinceMs[2] = { 0, 0 };
+volatile bool failHolding[2] = { false, false };
 
 audio_deck_state audioDecks[2] = {
   { 1, I2S_NUM_0, DAC_A_BCK_PIN, DAC_A_LRCK_PIN, DAC_A_DATA_PIN, "audioDeckA",
@@ -216,7 +273,7 @@ void debugPrintStatus() {
     float rpm = (float)copy[i].rpmCenti / 100.0f;
     Serial.printf("D%u %s rpm=%7.2f seq=%lu rx=%lu lost=%u age=%lums  ",
                   i + 1,
-                  online ? "ON " : "OFF",
+                  online ? "ON " : (failHolding[i] ? "HLD" : "OFF"),
                   rpm,
                   (unsigned long)copy[i].lastSeq,
                   (unsigned long)copy[i].packetCount,
@@ -228,10 +285,10 @@ void debugPrintStatus() {
 #endif
 }
 
-// Print transmitter status events (spin-cal progress etc.) from loop(),
-// never from the radio callback.
+// Handle transmitter status events from loop(), never from the radio
+// callback. Battery LOW/CRITICAL is latched (with expiry) for the LED
+// even when DEBUG_SERIAL is 0; printing is debug-only.
 void serviceTransmitterEvents() {
-#if DEBUG_SERIAL
   uint8_t deck = 0, code = 0; uint32_t val = 0; bool has = false;
   portENTER_CRITICAL(&stateMux);
   if (hasPendingEvent) {
@@ -240,25 +297,106 @@ void serviceTransmitterEvents() {
   }
   portEXIT_CRITICAL(&stateMux);
   if (!has) return;
+
+  if (deck >= 1 && deck <= 2) {
+    if (code == 6 || code == 7)      deckBattLowUntil[deck - 1] = millis() + BATT_LOW_HOLD_MS;
+    else if (code == 8)              deckBattLowUntil[deck - 1] = 0;
+  }
+
+#if DEBUG_SERIAL
   float v = (float)val / 1000000.0f;
   switch (code) {
     case 1: Serial.printf("EVT deck %u: using stored trim=%.5f\n", deck, v); break;
     case 2: Serial.printf("EVT deck %u: NO stored trim - spin platter at 0%% pitch to calibrate\n", deck); break;
     case 3: Serial.printf("EVT deck %u: spin-cal reference %.2f settled, sampling ~10 s - don't touch\n", deck, v); break;
     case 4: Serial.printf("EVT deck %u: spin-cal LOCKED, trim=%.5f (saved)\n", deck, v); break;
+    case 5: Serial.printf("EVT deck %u: battery %.2f V\n", deck, v); break;
+    case 6: Serial.printf("EVT deck %u: battery LOW %.2f V - charge soon\n", deck, v); break;
+    case 7: Serial.printf("EVT deck %u: battery CRITICAL %.2f V - charge now\n", deck, v); break;
+    case 8: Serial.printf("EVT deck %u: battery recovered (%.2f V)\n", deck, v); break;
     default: Serial.printf("EVT deck %u: code %u value %.5f\n", deck, code, v); break;
   }
 #endif
 }
 
+// Announce failover transitions from loop() (audio tasks must not print).
+void serviceFailoverLog() {
+#if DEBUG_SERIAL && FAILOVER_ENABLE
+  static bool prev[2] = { false, false };
+  for (uint8_t i = 0; i < 2; i++) {
+    bool h = failHolding[i];
+    if (h != prev[i]) {
+      prev[i] = h;
+      if (h) Serial.printf("FAILOVER deck %u: link lost - holding %.2f rpm\n",
+                           i + 1, failStableRpm[i]);
+      else   Serial.printf("FAILOVER deck %u: link restored - live rpm resumed\n", i + 1);
+    }
+  }
+#endif
+}
+
+// Diff the dicer's button state into MIDI notes. State-based: a lost
+// packet just delays the edge, it can never stick a note. Note-off uses
+// the note that was sent at press time, so mode changes mid-hold stay
+// consistent.
+void serviceDicerMidi() {
+  uint16_t mask; uint8_t mode;
+  portENTER_CRITICAL(&stateMux);
+  bool seen = dicerSeen;
+  mask = dicerMask; mode = dicerMode;
+  portEXIT_CRITICAL(&stateMux);
+  if (!seen) return;
+  uint16_t changed = mask ^ dicerPrevMask;
+  if (!changed) return;
+  for (uint8_t i = 0; i < 6; i++) {
+    if (!(changed & (1u << i))) continue;
+    if (mask & (1u << i)) {
+      uint8_t note = MIDI_BASE_NOTE + mode * 6 + i;
+      dicerActiveNote[i] = note;
+#if USB_MIDI_ACTIVE
+      MIDI.noteOn(note, 127, MIDI_CHANNEL);
+#endif
+#if DEBUG_SERIAL
+      Serial.printf("DICER: mode %u btn %u DOWN -> note %u on\n", mode + 1, i + 1, note);
+#endif
+    } else if (dicerActiveNote[i]) {
+#if USB_MIDI_ACTIVE
+      MIDI.noteOff(dicerActiveNote[i], 0, MIDI_CHANNEL);
+#endif
+#if DEBUG_SERIAL
+      Serial.printf("DICER: btn %u up -> note %u off\n", i + 1, dicerActiveNote[i]);
+#endif
+      dicerActiveNote[i] = 0;
+    }
+  }
+  dicerPrevMask = mask;
+}
+
 // ===== RGB status LED =================================================
-void updateLed(int onlineCount) {
-  if (onlineCount == lastLedCount) return;
-  lastLedCount = onlineCount;
+// Color = deck count (red none / orange one / green both). A low battery
+// modulates it: deck 1 low = slow on/off blink, deck 2 low = two fast
+// pulses per cycle, both low = three fast pulses per cycle.
+static bool ledBlinkPhase(uint32_t now, bool low1, bool low2) {
+  if (!low1 && !low2) return true;                 // solid
+  if (low1 && !low2)  return (now % 1000) < 500;   // slow blink
+  int pulses = (low1 && low2) ? 3 : 2;             // fast pulse burst
+  uint32_t t = now % 1200;
+  return t < (uint32_t)(pulses * 280) && (t % 280) < 140;
+}
+
+void serviceLed() {
+  uint32_t now = millis();
+  int onlineCount = onlineDeckCount();
+  bool low1 = deckBattLowUntil[0] != 0 && now < deckBattLowUntil[0];
+  bool low2 = deckBattLowUntil[1] != 0 && now < deckBattLowUntil[1];
   uint8_t r, g, b;
   if      (onlineCount >= 2) { r = 0;   g = 255; b = 0; }   // green
   else if (onlineCount == 1) { r = 255; g = 80;  b = 0; }   // orange
   else                       { r = 255; g = 0;   b = 0; }   // red
+  if (!ledBlinkPhase(now, low1, low2)) { r = 0; g = 0; b = 0; }
+  uint32_t packed = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+  if (packed == lastLedPacked) return;             // refresh only on change
+  lastLedPacked = packed;
   led.setPixelColor(0, led.Color(r, g, b));
   led.show();
 }
@@ -333,9 +471,35 @@ void sendControlMessage(const uint8_t *mac, uint8_t deckId, uint8_t msgType) {
 void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
   if (len != sizeof(dvs_packet)) return;
   dvs_packet packet; memcpy(&packet, data, sizeof(packet));
-  if (packet.version != PROTOCOL_VERSION || packet.deckId < 1 || packet.deckId > 2) return;
+  if (packet.version != PROTOCOL_VERSION || packet.deckId < 1 || packet.deckId > 3) return;
 
   const uint8_t *src = info->src_addr;
+
+  // Dicer (unit 3): no deck_state - HELLO and EVENT reuse the shared
+  // pending slots, button state goes to its own.
+  if (packet.deckId == DICER_ID) {
+    if (packet.msgType == MSG_HELLO) {
+      portENTER_CRITICAL_ISR(&stateMux);
+      memcpy(pendingWelcomeMac, src, 6);
+      pendingWelcomeDeck = packet.deckId; hasPendingWelcome = true;
+      portEXIT_CRITICAL_ISR(&stateMux);
+    } else if (packet.msgType == MSG_BUTTONS) {
+      portENTER_CRITICAL_ISR(&stateMux);
+      dicerMask = (uint16_t)packet.rpmCenti;
+      dicerMode = (uint8_t)packet.gyroRaw;
+      dicerSeen = true;
+      portEXIT_CRITICAL_ISR(&stateMux);
+    } else if (packet.msgType == MSG_EVENT) {
+      portENTER_CRITICAL_ISR(&stateMux);
+      pendingEventDeck = packet.deckId;
+      pendingEventCode = (uint8_t)packet.rpmCenti;
+      pendingEventValue = packet.timestampMicros;
+      hasPendingEvent = true;
+      portEXIT_CRITICAL_ISR(&stateMux);
+    }
+    return;
+  }
+
   deck_state *state = &deckStates[packet.deckId - 1];
 
   portENTER_CRITICAL_ISR(&stateMux);
@@ -464,8 +628,25 @@ float readTargetRpm(uint8_t deckId) {
   portENTER_CRITICAL(&stateMux);
   rpmCenti = deckStates[i].rpmCenti; lastSeen = deckStates[i].lastSeenMillis;
   portEXIT_CRITICAL(&stateMux);
-  if (lastSeen == 0 || millis() - lastSeen > DECK_TIMEOUT_MS) return 0.0f;
+  uint32_t now = millis();
+  bool online = lastSeen != 0 && now - lastSeen <= DECK_TIMEOUT_MS;
+#if FAILOVER_ENABLE
+  if (online) {
+    failHolding[i] = false;
+    float rpm = (float)rpmCenti / 100.0f;
+    if (fabsf(rpm - failCandRpm[i]) > FAILOVER_STABLE_BAND_RPM) {
+      failCandRpm[i] = rpm; failCandSinceMs[i] = now;  // new stability window
+    } else if (now - failCandSinceMs[i] >= FAILOVER_STABLE_MS) {
+      failStableRpm[i] = rpm;             // steady long enough -> hold value
+    }
+    return rpm;
+  }
+  if (lastSeen != 0) failHolding[i] = true;  // was alive -> hold, don't stop
+  return failHolding[i] ? failStableRpm[i] : 0.0f;
+#else
+  if (!online) return 0.0f;
   return (float)rpmCenti / 100.0f;
+#endif
 }
 
 void audioTask(void *param) {
@@ -529,7 +710,7 @@ void setup() {
   setupDebugSerial();
   led.begin();
   led.setBrightness(LED_BRIGHTNESS);
-  updateLed(0);                       // start red (no transmitters)
+  serviceLed();                       // start red (no transmitters)
 
 #if DEBUG_SERIAL
   Serial.printf("Building Traktor MK2 bit table (%lu s loop, %lu bytes)...\n",
@@ -555,14 +736,22 @@ void setup() {
   xTaskCreatePinnedToCore(audioTask, audioDecks[0].taskName, 8192, &audioDecks[0], 3, NULL, 1);
   xTaskCreatePinnedToCore(audioTask, audioDecks[1].taskName, 8192, &audioDecks[1], 3, NULL, 1);
   debugBootLog("Audio tasks OK");
+
+#if USB_MIDI_ACTIVE
+  MIDI.begin();
+  USB.begin();
+  debugBootLog("USB-MIDI up (native USB port)");
+#endif
 }
 
 void loop() {
   serviceEspNowControl();
   serviceTransmitterEvents();
+  serviceFailoverLog();
+  serviceDicerMidi();
   if (millis() - lastLedMillis >= LED_UPDATE_MS) {
     lastLedMillis = millis();
-    updateLed(onlineDeckCount());
+    serviceLed();
   }
   debugPrintStatus();
   delay(1);

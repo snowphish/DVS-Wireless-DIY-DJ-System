@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 660" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="980" height="660" fill="#ffffff"/>
+  <text x="490" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#222">Transmitter puck, PCB revision — ESP32-C3 + BMI160</text>
+
+  <!-- Battery -->
+  <rect x="40" y="150" width="150" height="130" rx="10" fill="#f5f5f5" stroke="#333" stroke-width="1.5"/>
+  <text x="115" y="183" text-anchor="middle" font-size="14" font-weight="bold" fill="#222">CR123a-size</text>
+  <text x="115" y="203" text-anchor="middle" font-size="13" fill="#222">Li-ion 3.7 V</text>
+  <text x="115" y="221" text-anchor="middle" font-size="12" fill="#555">USB-C rechargeable,</text>
+  <text x="115" y="239" text-anchor="middle" font-size="12" fill="#555">12×12 mm spring</text>
+  <text x="115" y="255" text-anchor="middle" font-size="12" fill="#555">contacts in print</text>
+  <text x="200" y="177" font-size="14" font-weight="bold" fill="#d33">+</text>
+  <text x="200" y="268" font-size="16" font-weight="bold" fill="#222">−</text>
+  <circle cx="190" cy="185" r="3.5" fill="#d33"/>
+  <circle cx="190" cy="255" r="3.5" fill="#222"/>
+
+  <!-- Switch -->
+  <polyline points="190,185 240,185" fill="none" stroke="#d33" stroke-width="2.2"/>
+  <circle cx="240" cy="185" r="4" fill="#d33"/>
+  <line x1="240" y1="185" x2="292" y2="163" stroke="#d33" stroke-width="2.2"/>
+  <circle cx="297" cy="185" r="4" fill="#d33"/>
+  <polyline points="297,185 350,185" fill="none" stroke="#d33" stroke-width="2.2"/>
+  <text x="268" y="140" text-anchor="middle" font-size="13" font-weight="bold" fill="#222">ON / OFF</text>
+  <text x="268" y="156" text-anchor="middle" font-size="11" fill="#555">SPDT micro slide</text>
+
+  <!-- BAT- -->
+  <polyline points="190,255 350,255" fill="none" stroke="#222" stroke-width="2.2"/>
+
+  <!-- Battery divider, tapped AFTER the switch -->
+  <circle cx="325" cy="185" r="3.5" fill="#d33"/>
+  <polyline points="325,185 325,290" fill="none" stroke="#d33" stroke-width="2"/>
+  <rect x="313" y="290" width="24" height="44" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="303" y="316" text-anchor="end" font-size="11" fill="#222">100k</text>
+  <polyline points="325,334 325,345" fill="none" stroke="#a60" stroke-width="2"/>
+  <circle cx="325" cy="345" r="3.5" fill="#a60"/>
+  <polyline points="325,345 350,345" fill="none" stroke="#a60" stroke-width="2.2"/>
+  <rect x="313" y="356" width="24" height="44" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <polyline points="325,345 325,356" fill="none" stroke="#a60" stroke-width="2"/>
+  <text x="303" y="382" text-anchor="end" font-size="11" fill="#222">100k</text>
+  <polyline points="325,400 325,430 200,430 200,255" fill="none" stroke="#222" stroke-width="2"/>
+  <circle cx="200" cy="255" r="3.5" fill="#222"/>
+  <!-- cap -->
+  <polyline points="325,345 270,345 270,362" fill="none" stroke="#a60" stroke-width="2"/>
+  <line x1="258" y1="362" x2="282" y2="362" stroke="#333" stroke-width="2.5"/>
+  <line x1="258" y1="372" x2="282" y2="372" stroke="#333" stroke-width="2.5"/>
+  <polyline points="270,372 270,430" fill="none" stroke="#222" stroke-width="2"/>
+  <circle cx="270" cy="430" r="3.5" fill="#222"/>
+  <text x="248" y="352" text-anchor="end" font-size="11" fill="#222">100 nF</text>
+
+  <!-- ESP32-C3 -->
+  <rect x="350" y="90" width="220" height="300" rx="10" fill="#eef3fb" stroke="#333" stroke-width="1.5"/>
+  <text x="460" y="118" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">ESP32-C3</text>
+  <text x="460" y="136" text-anchor="middle" font-size="12" fill="#555">supermini / C3-MINI-1</text>
+  <circle cx="350" cy="185" r="3.5" fill="#d33"/>
+  <text x="360" y="189" font-size="13" fill="#222">5V (VIN)</text>
+  <circle cx="350" cy="255" r="3.5" fill="#222"/>
+  <text x="360" y="259" font-size="13" fill="#222">GND</text>
+  <circle cx="350" cy="345" r="3.5" fill="#a60"/>
+  <text x="360" y="349" font-size="13" fill="#222">GPIO3 (ADC)</text>
+  <circle cx="570" cy="150" r="3.5" fill="#d33"/>
+  <text x="560" y="154" text-anchor="end" font-size="13" fill="#222">3V3</text>
+  <circle cx="570" cy="185" r="3.5" fill="#222"/>
+  <text x="560" y="189" text-anchor="end" font-size="13" fill="#222">GND</text>
+  <circle cx="570" cy="245" r="3.5" fill="#2266cc"/>
+  <text x="560" y="249" text-anchor="end" font-size="13" fill="#222">GPIO8</text>
+  <circle cx="570" cy="280" r="3.5" fill="#2a8f4a"/>
+  <text x="560" y="284" text-anchor="end" font-size="13" fill="#222">GPIO9</text>
+  <circle cx="570" cy="325" r="3.5" fill="#888"/>
+  <text x="560" y="329" text-anchor="end" font-size="13" fill="#888">GPIO4</text>
+
+  <!-- BMI160 -->
+  <rect x="720" y="90" width="210" height="370" rx="10" fill="#f7effa" stroke="#333" stroke-width="1.5"/>
+  <text x="825" y="118" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">BMI160 (GY board)</text>
+  <text x="825" y="136" text-anchor="middle" font-size="12" fill="#555">M2 screws, Z axis vertical</text>
+  <circle cx="720" cy="150" r="3.5" fill="#d33"/>
+  <text x="730" y="154" font-size="13" fill="#222">3V3</text>
+  <circle cx="720" cy="185" r="3.5" fill="#222"/>
+  <text x="730" y="189" font-size="13" fill="#222">GND</text>
+  <circle cx="720" cy="245" r="3.5" fill="#2266cc"/>
+  <text x="730" y="249" font-size="13" fill="#222">SDA</text>
+  <circle cx="720" cy="280" r="3.5" fill="#2a8f4a"/>
+  <text x="730" y="284" font-size="13" fill="#222">SCL</text>
+  <circle cx="720" cy="325" r="3.5" fill="#888"/>
+  <text x="730" y="329" font-size="13" fill="#888">INT1</text>
+  <circle cx="720" cy="380" r="3.5" fill="#d33"/>
+  <text x="730" y="384" font-size="13" fill="#222">CS  (high = I2C)</text>
+  <circle cx="720" cy="415" r="3.5" fill="#222"/>
+  <text x="730" y="419" font-size="13" fill="#222">SAO (low = 0x68)</text>
+  <text x="825" y="445" text-anchor="middle" font-size="11" fill="#555">NC: VIN, OCS, SCX, SDX, INT2</text>
+
+  <!-- C3 <-> BMI160 wires -->
+  <polyline points="570,150 720,150" fill="none" stroke="#d33" stroke-width="2.2"/>
+  <polyline points="570,185 720,185" fill="none" stroke="#222" stroke-width="2.2"/>
+  <polyline points="570,245 720,245" fill="none" stroke="#2266cc" stroke-width="2.2"/>
+  <text x="645" y="238" text-anchor="middle" font-size="11" fill="#2266cc">SDA</text>
+  <polyline points="570,280 720,280" fill="none" stroke="#2a8f4a" stroke-width="2.2"/>
+  <text x="645" y="273" text-anchor="middle" font-size="11" fill="#2a8f4a">SCL</text>
+  <polyline points="570,325 720,325" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="6,5"/>
+  <text x="645" y="318" text-anchor="middle" font-size="11" fill="#888">optional (data-ready IRQ, route now use later)</text>
+
+  <!-- CS tie high, SAO tie low -->
+  <polyline points="720,380 690,380 690,150" fill="none" stroke="#d33" stroke-width="1.8"/>
+  <circle cx="690" cy="150" r="3.5" fill="#d33"/>
+  <polyline points="720,415 668,415 668,185" fill="none" stroke="#222" stroke-width="1.8"/>
+  <circle cx="668" cy="185" r="3.5" fill="#222"/>
+
+  <!-- Notes -->
+  <text x="40" y="490" font-size="13" font-weight="bold" fill="#222">PCB notes</text>
+  <text x="40" y="512" font-size="13" fill="#555">• Battery feeds 5V/VIN only — never the 3V3 rail. The C3's LDO isolates the radio's 300 mA TX bursts from the cell.</text>
+  <text x="40" y="532" font-size="13" fill="#555">• CS→3V3 and SAO→GND as copper: clone GY-BMI160 boards have inconsistent onboard pulls. No solder jumpers anywhere.</text>
+  <text x="40" y="552" font-size="13" fill="#555">• Divider taps AFTER the switch (zero drain when off). 100 nF close to GPIO3. Board pull-ups on SDA/SCL already exist — add none.</text>
+  <text x="40" y="572" font-size="13" fill="#555">• Keep ALL parts, wires and the battery cylinder ≥1 cm from the C3's ceramic antenna corner (a detuned antenna killed the</text>
+  <text x="52" y="590" font-size="13" fill="#555">link once already). Battery at the far end of the board.</text>
+  <text x="40" y="610" font-size="13" fill="#555">• GPIO2/8/9 are strap pins — 8/9 carry I2C (fine), nothing else on them; GPIO18/19 stay free (USB).</text>
+  <text x="40" y="630" font-size="13" fill="#555">• Firmware: BMI160 driver replaces the MPU6050 section; addr 0x68, ±1000 dps = 32.8 LSB/dps unchanged.</text>
+</svg>
