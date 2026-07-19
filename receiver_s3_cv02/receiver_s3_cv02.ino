@@ -18,6 +18,10 @@
 #include <math.h>
 #include <Adafruit_NeoPixel.h>
 
+// newlib libm has sincosf (one call for both) but math.h only declares it
+// under _GNU_SOURCE, so declare it ourselves.
+extern "C" void sincosf(float x, float *s, float *c);
+
 // ===== I2S DAC pins (one stereo PCM5102A per deck) ====================
 #define DAC_A_BCK_PIN   2
 #define DAC_A_LRCK_PIN  1
@@ -212,6 +216,11 @@ audio_deck_state audioDecks[2] = {
 void setupDebugSerial() {
 #if DEBUG_SERIAL
   Serial.begin(DEBUG_BAUD);
+#if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
+  // Never let debug prints stall loop() when a USB host is attached but
+  // not draining the port (monitor closed mid-session): drop, don't block.
+  Serial.setTxTimeoutMs(0);
+#endif
   delay(1000);
   Serial.println();
   Serial.println("DVS dual I2S CV02 receiver boot");
@@ -384,9 +393,7 @@ void serviceLed() {
 
 // ===== CV02 sequence =================================================
 static uint8_t lfsrBit(uint32_t code, uint32_t taps) {
-  uint32_t t = code & taps; uint8_t p = 0;
-  while (t) { p ^= (uint8_t)(t & 1U); t >>= 1; }
-  return p;
+  return (uint8_t)__builtin_parity(code & taps);
 }
 static uint32_t lfsrForward(uint32_t cur) {
   uint8_t bit = lfsrBit(cur, CV02_TAPS | 0x1U);
@@ -585,7 +592,8 @@ static inline void renderCv02Sample(audio_deck_state *deck, int64_t phaseStep,
   float frac = (float)(uint32_t)deck->cv02Phase * (1.0f / CV02_FRAC_ONE);
 
   float angle = frac * 6.28318530718f;
-  float sine = sinf(angle), cosine = cosf(angle);
+  float sine, cosine;
+  sincosf(angle, &sine, &cosine);   // one libm call for both = cheaper
   uint8_t bit = getPackedBit(cycleIndex);
   float modulation = bit ? 1.0f : 1.0f - ((-cosine + 1.0f) * 0.25f);
 

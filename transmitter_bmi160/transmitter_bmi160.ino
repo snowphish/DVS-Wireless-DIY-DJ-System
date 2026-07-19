@@ -489,7 +489,14 @@ void setup() {
 void loop() {
   serviceBattery();
   uint32_t now = micros();
-  if ((int32_t)(now - nextSendMicros) < 0) return;
+  int32_t untilSend = (int32_t)(nextSendMicros - now);
+  if (untilSend > 0) {
+    // Battery: idle instead of busy-spinning between 2 ms sends. delay(1)
+    // parks the CPU in the FreeRTOS idle task (WFI). Only when >1.2 ms
+    // remains, so the 1 ms tick can never overshoot the send slot.
+    if (untilSend > 1200) delay(1);
+    return;
+  }
   nextSendMicros += SEND_INTERVAL_US;
   if ((int32_t)(now - nextSendMicros) > (int32_t)SEND_INTERVAL_US) nextSendMicros = now + SEND_INTERVAL_US;
 

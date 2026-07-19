@@ -34,6 +34,10 @@
 #include <math.h>
 #include <Adafruit_NeoPixel.h>
 
+// newlib libm has sincosf (one call for both) but math.h only declares it
+// under _GNU_SOURCE, so declare it ourselves.
+extern "C" void sincosf(float x, float *s, float *c);
+
 // ===== I2S DAC pins (one stereo PCM5102A per deck) ====================
 #define DAC_A_BCK_PIN   2
 #define DAC_A_LRCK_PIN  1
@@ -231,7 +235,8 @@ volatile uint8_t  dicerMode = 0;
 uint16_t dicerPrevMask = 0;
 uint8_t  dicerActiveNote[6] = { 0, 0, 0, 0, 0, 0 };
 
-uint8_t *traktorPackedBits = NULL;   // 512 KB in PSRAM
+uint8_t *traktorPackedBits = NULL;   // ~37.5 KB at the 300 s loop window
+                                     // (ps_calloc if PSRAM exists, else heap)
 
 uint32_t lastLedMillis = 0;
 uint32_t lastLedPacked = 0xFFFFFFFFUL;
@@ -256,6 +261,11 @@ audio_deck_state audioDecks[2] = {
 void setupDebugSerial() {
 #if DEBUG_SERIAL
   Serial.begin(DEBUG_BAUD);
+#if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
+  // Never let debug prints stall loop() when a USB host is attached but
+  // not draining the port (monitor closed mid-session): drop, don't block.
+  Serial.setTxTimeoutMs(0);
+#endif
   delay(1000);
   Serial.println();
   Serial.println("DVS dual I2S TRAKTOR MK2 receiver boot");
@@ -650,7 +660,8 @@ static inline void renderTraktorSample(audio_deck_state *deck,
 
   float frac = (float)(uint32_t)deck->carrierPhase * (1.0f / PHASE_FRAC_ONE);
   float angle = frac * 6.28318530718f;
-  float sine = sinf(angle), cosine = cosf(angle);
+  float sine, cosine;
+  sincosf(angle, &sine, &cosine);   // one libm call for both = cheaper
 
   int64_t bitCyc = deck->dataPhase >> PHASE_FRAC_BITS;
   uint32_t bitIndex = (uint32_t)(((bitCyc % (int64_t)TRAKTOR_LOOP_BITS)
