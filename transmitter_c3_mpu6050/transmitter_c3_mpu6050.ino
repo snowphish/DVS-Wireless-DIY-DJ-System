@@ -316,12 +316,11 @@ void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
   esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
-  // Moderate TX power: 34 x 0.25 = 8.5 dBm. C3 boards with tiny PCB/ceramic
-  // antennas are known to get LESS reliable at max power - the PA overdrives
-  // the mismatched antenna and distorts its own signal. Lower power is also
-  // easier on the battery. Raise toward 84 (21 dBm) only if range testing
-  // with the receiver's loss/rssi stats shows it actually helps.
-  esp_wifi_set_max_tx_power(34);
+  // Max TX power (84 x 0.25 = 21 dBm, driver clamps to chip max ~20 dBm).
+  // Bench-tested 8.5 / 15 / 20 dBm at range: RSSI and packet loss both
+  // improved monotonically with power on these boards (the small-antenna
+  // "overdrive" worry did not materialise), so run flat out.
+  esp_wifi_set_max_tx_power(84);
   if (esp_now_init() != ESP_OK) { while (true) { Serial.println("ERR espnow_init"); delay(1000); } }
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);
