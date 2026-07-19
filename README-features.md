@@ -78,7 +78,7 @@ puck dying mid-scratch holds the last steady groove speed, not the flail.
 Bench test: play a track, flip the puck's power switch mid-play — the deck
 should keep rolling at pitch and the receiver should log the failover.
 
-## Wireless dicer (`dicer_c3`, unit 3)
+## Wireless dicer (`Experimental/dicer_c3`, unit 3)
 
 Novation-Dicer-style wireless button pad: ESP32-C3 with **6 performance
 buttons + 1 mode button + 1 mode LED**. Route: dicer → ESP-NOW (unicast,
