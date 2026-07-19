@@ -37,7 +37,7 @@ extern "C" void sincosf(float x, float *s, float *c);
 Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // ===== Radio / protocol (must match the transmitter) ==================
-#define ESPNOW_CHANNEL 11
+#define ESPNOW_CHANNEL 6
 #define PROTOCOL_VERSION 1
 #define MSG_HELLO 1
 #define MSG_WELCOME 2
