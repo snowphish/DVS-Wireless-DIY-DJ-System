@@ -37,7 +37,7 @@ extern "C" void sincosf(float x, float *s, float *c);
 Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // ===== Radio / protocol (must match the transmitter) ==================
-#define ESPNOW_CHANNEL 6
+#define ESPNOW_CHANNEL 11
 #define PROTOCOL_VERSION 1
 #define MSG_HELLO 1
 #define MSG_WELCOME 2
@@ -628,7 +628,7 @@ static int64_t rpmToPhaseStep(float rpm) {
 }
 
 // L = -cos, R = sin (quadrature); bit stream amplitude-modulates the pair.
-// int64 phase => glitch-free reverse/backspin and full sequence.
+// int64 phase => glitch-free reverse/backspin across the loop window.
 static inline void renderCv02Sample(audio_deck_state *deck, int64_t phaseStep,
                                     int16_t *leftOut, int16_t *rightOut) {
   deck->cv02Phase += phaseStep;
