@@ -57,8 +57,10 @@
 #define USE_BROADCAST 1           // broadcast DATA = no ACK/retry = low jitter
 // Default ESP-NOW rate is 1 Mbps 802.11b: ~650 us airtime per packet, i.e.
 // ~33% channel use per deck at 500 Hz (two decks collide a lot). Legacy
-// OFDM 24 Mbps cuts airtime ~6x. Only affects our TX side; any ESP32
-// receives it fine. Set to 0 to fall back to the stock rate.
+// OFDM 6 Mbps still cuts airtime ~3x but decodes ~15 dB weaker signals
+// than the 24 Mbps used before - much better range; 24M was dropping ~40%
+// of packets across a room. Only affects our TX side; any ESP32 receives
+// it fine. Set to 0 to fall back to the stock rate.
 #define ESPNOW_FAST_RATE 1
 
 #define PROTOCOL_VERSION 1
@@ -314,6 +316,8 @@ void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
   esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
+  // Max radio TX power (units 0.25 dBm; the driver clamps to chip limit).
+  esp_wifi_set_max_tx_power(84);
   if (esp_now_init() != ESP_OK) { while (true) { Serial.println("ERR espnow_init"); delay(1000); } }
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);
@@ -326,7 +330,7 @@ void setupEspNow() {
 #if ESPNOW_FAST_RATE
   esp_now_rate_config_t rateCfg = {};
   rateCfg.phymode = WIFI_PHY_MODE_11G;
-  rateCfg.rate = WIFI_PHY_RATE_24M;
+  rateCfg.rate = WIFI_PHY_RATE_6M;
   esp_now_set_peer_rate_config(broadcastMAC, &rateCfg);
 #endif
 }
