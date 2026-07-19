@@ -1,13 +1,17 @@
-# test — low-battery, link-loss failover, wireless dicer (experimental, local only)
+# Feature details — battery, failover, calibration, dicer
 
-Forked copies of the sketches plus a new **dicer** button unit. The
-top-level sketches are untouched; flash these to try the features. Not
-committed to git until proven.
+Deeper notes on features that ship in the top-level sketches: the puck's
+low-battery indication, the receiver's link-loss failover, the two-point
+gyro calibration story, and the experimental wireless dicer (which lives
+under `Experimental/dicer_c3/`, off the shipping flasher).
 
-`transmitter_bmi160/` is the same test transmitter (low-batt, spin-cal
-learn-once, no auto-rezero) with the gyro driver ported to the Bosch
-BMI160 per the PCB schematic: SDA→GPIO8, SCL→GPIO9, CS→3V3 (I2C),
-SAO→GND (0x68), INT1→GPIO4 reserved. Untested until boards arrive.
+## Gyro variants
+
+Two puck sketches ship: `transmitter_c3_mpu6050/` and `transmitter_bmi160/`.
+Same protocol, same auto-pairing, same feature set — pick the one matching
+the gyro on your PCB. BMI160 wiring per the transmitter schematic:
+SDA→GPIO8, SCL→GPIO9, CS→3V3 (I2C), SAO→GND (0x68), INT1→GPIO4 reserved
+(currently the receiver's re-pair button — pucks don't use it).
 
 ## Hardware change (transmitter puck)
 
@@ -78,11 +82,15 @@ puck dying mid-scratch holds the last steady groove speed, not the flail.
 Bench test: play a track, flip the puck's power switch mid-play — the deck
 should keep rolling at pitch and the receiver should log the failover.
 
-## Wireless dicer (`Experimental/dicer_c3`, unit 3)
+## Wireless dicer (`Experimental/dicer_c3`, unit 3, off shipping flasher)
 
 Novation-Dicer-style wireless button pad: ESP32-C3 with **6 performance
 buttons + 1 mode button + 1 mode LED**. Route: dicer → ESP-NOW (unicast,
 ACKed) → receiver → **USB-MIDI** → MIDI-learn in Traktor/Serato.
+
+The shipping receiver binaries compile MIDI out (`USB_MIDI_ENABLE 0`); to
+run the dicer, set `USB_MIDI_ENABLE 1` in the receiver sketch and build in
+USB-OTG (TinyUSB) mode.
 
 Wiring (buttons pin→GND, internal pull-ups, diagonal legs on 6 mm tacts):
 
