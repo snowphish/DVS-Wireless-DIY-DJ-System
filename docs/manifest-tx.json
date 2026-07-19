@@ -1,6 +1,6 @@
 {
-  "name": "DVS Transmitter (gyro puck)",
-  "version": "1.0.0",
+  "name": "DVS Transmitter (gyro puck, MPU6050)",
+  "version": "1.1.0",
   "new_install_prompt_erase": true,
   "builds": [
     {

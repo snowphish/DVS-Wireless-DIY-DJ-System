@@ -49,7 +49,7 @@
 #define GYRO_LSB_PER_DPS 32.8f
 
 // ===== Radio / protocol ==============================================
-#define ESPNOW_CHANNEL 6
+#define ESPNOW_CHANNEL 11
 #define SEND_RATE_HZ 500
 #define SEND_INTERVAL_US (1000000UL / SEND_RATE_HZ)
 #define HANDSHAKE_INTERVAL_MS 250

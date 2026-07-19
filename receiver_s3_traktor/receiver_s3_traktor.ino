@@ -53,7 +53,7 @@ extern "C" void sincosf(float x, float *s, float *c);
 Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // ===== Radio / protocol (must match the transmitter) ==================
-#define ESPNOW_CHANNEL 6
+#define ESPNOW_CHANNEL 11
 #define PROTOCOL_VERSION 1
 #define MSG_HELLO 1
 #define MSG_WELCOME 2
@@ -624,14 +624,12 @@ void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
 #if DEBUG_SERIAL
-  // Paste this into the transmitter's receiverMAC[] to pair it.
+  // Informational only - pucks auto-pair by their own MAC, nothing to copy.
   // esp_read_mac reads the factory STA MAC from eFuse - unlike
   // WiFi.macAddress() it works before the WiFi driver has started.
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_WIFI_STA);
   Serial.printf("Receiver MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  Serial.printf("  transmitter: uint8_t receiverMAC[] = { 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X };\n",
                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 #endif
   esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);

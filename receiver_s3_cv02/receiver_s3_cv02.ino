@@ -563,14 +563,12 @@ void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
 #if DEBUG_SERIAL
-  // Paste this into the transmitter's receiverMAC[] to pair it.
+  // Informational only - pucks auto-pair by their own MAC, nothing to copy.
   // esp_read_mac reads the factory STA MAC from eFuse - unlike
   // WiFi.macAddress() it works before the WiFi driver has started.
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_WIFI_STA);
   Serial.printf("Receiver MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  Serial.printf("  transmitter: uint8_t receiverMAC[] = { 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X };\n",
                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 #endif
   esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);

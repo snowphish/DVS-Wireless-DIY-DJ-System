@@ -59,7 +59,8 @@
   <div class="card">
     <label class="field" for="target">1 — Choose what you're flashing</label>
     <select id="target">
-      <option value="tx">Transmitter puck — gyro platter unit (ESP32-C3)</option>
+      <option value="tx">Transmitter puck — MPU6050 gyro (ESP32-C3)</option>
+      <option value="tx-bmi160">Transmitter puck — BMI160 gyro (ESP32-C3)</option>
       <option value="rx-traktor">Receiver — Traktor Scratch MK2 (ESP32-S3)</option>
       <option value="rx-serato">Receiver — Serato CV02 (ESP32-S3)</option>
     </select>
@@ -88,8 +89,10 @@
           USB only.</li>
       <li>Click <b>Connect &amp; Flash</b>, pick the board's serial port, and
           wait for "flashing complete."</li>
-      <li>After flashing the <b>receiver</b>, open its serial console (the
-          Logs button on the dialog) to read its MAC address for pairing.</li>
+      <li>To pair: power the <b>receiver</b> first (its LED blinks blue for
+          about a minute), then switch on each puck — the first becomes
+          deck&nbsp;1, the second deck&nbsp;2. No other setup needed; hold the
+          receiver's re-pair button (~2&nbsp;s) to redo pairing anytime.</li>
     </ol>
   </div>
 
@@ -101,7 +104,12 @@
   const DESC = {
     "tx": {
       manifest: "manifest-tx.json",
-      text: "The gyro unit that rides on the platter. Flash one per deck — after flashing, set its Deck ID and receiver MAC (see the kit guide), then do the one-time spin calibration.",
+      text: "The gyro unit that rides on the platter (MPU6050 gyro version). Flash one per deck — no per-unit setup: pucks auto-pair to the receiver (first switched on = deck 1). Then do the one-time spin calibration.",
+      chips: ['<span class="chip">ESP32-C3</span>', '<span class="chip blue">one per deck</span>']
+    },
+    "tx-bmi160": {
+      manifest: "manifest-tx-bmi160.json",
+      text: "The gyro unit that rides on the platter (BMI160 gyro version — check which sensor your puck has). Flash one per deck — no per-unit setup: pucks auto-pair to the receiver. Then do the one-time spin calibration.",
       chips: ['<span class="chip">ESP32-C3</span>', '<span class="chip blue">one per deck</span>']
     },
     "rx-traktor": {
