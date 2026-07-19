@@ -316,8 +316,12 @@ void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
   esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
-  // Max radio TX power (units 0.25 dBm; the driver clamps to chip limit).
-  esp_wifi_set_max_tx_power(84);
+  // Moderate TX power: 34 x 0.25 = 8.5 dBm. C3 boards with tiny PCB/ceramic
+  // antennas are known to get LESS reliable at max power - the PA overdrives
+  // the mismatched antenna and distorts its own signal. Lower power is also
+  // easier on the battery. Raise toward 84 (21 dBm) only if range testing
+  // with the receiver's loss/rssi stats shows it actually helps.
+  esp_wifi_set_max_tx_power(34);
   if (esp_now_init() != ESP_OK) { while (true) { Serial.println("ERR espnow_init"); delay(1000); } }
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);

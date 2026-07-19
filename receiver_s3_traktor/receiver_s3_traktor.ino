@@ -195,8 +195,12 @@ typedef struct {
   uint32_t lastSeq;
   uint32_t lastSeenMillis;
   uint32_t lastPingMillis;
-  uint32_t packetCount;
-  uint16_t lostPackets;
+  // Link stats, accumulated per status-print interval, reset at each print:
+  // DATA packets received, packets lost (seq gaps), RSSI sum + worst (dBm).
+  uint16_t rxWindow;
+  uint16_t lostWindow;
+  int32_t  rssiSum;
+  int8_t   rssiMin;         // 127 = nothing received this interval
   uint8_t  mac[6];          // owner MAC, set at assignment, matched thereafter
 } deck_state;
 
@@ -294,25 +298,36 @@ void debugPrintStatus() {
   deck_state copy[2];
   portENTER_CRITICAL(&stateMux);
   memcpy(copy, deckStates, sizeof(copy));
+  for (uint8_t i = 0; i < 2; i++) {          // stats windows restart now
+    deckStates[i].rxWindow = 0;
+    deckStates[i].lostWindow = 0;
+    deckStates[i].rssiSum = 0;
+    deckStates[i].rssiMin = 127;
+  }
   portEXIT_CRITICAL(&stateMux);
 
   for (uint8_t i = 0; i < 2; i++) {
     bool online = copy[i].lastSeenMillis != 0 &&
                   nowMillis - copy[i].lastSeenMillis <= DECK_TIMEOUT_MS;
     float rpm = (float)copy[i].rpmCenti / 100.0f;
-    Serial.printf("D%u %s rpm=%7.2f seq=%lu rx=%lu lost=%u age=%lums  ",
+    uint32_t got = copy[i].rxWindow, lost = copy[i].lostWindow;
+    // loss = share of the puck's sent packets that never arrived this
+    // interval; rssi = interval average / worst, in dBm.
+    char lossBuf[8] = "   --", rssiBuf[12] = "  --";
+    if (got + lost > 0)
+      snprintf(lossBuf, sizeof(lossBuf), "%4.1f%%",
+               100.0f * (float)lost / (float)(got + lost));
+    if (got > 0)
+      snprintf(rssiBuf, sizeof(rssiBuf), "%d/%d",
+               (int)(copy[i].rssiSum / (int32_t)got), (int)copy[i].rssiMin);
+    Serial.printf("D%u %s rpm=%7.2f loss=%s rssi=%s age=%lums  ",
                   i + 1,
                   online ? "ON " : (failHolding[i] ? "HLD" : "OFF"),
-                  rpm,
-                  (unsigned long)copy[i].lastSeq,
-                  (unsigned long)copy[i].packetCount,
-                  copy[i].lostPackets,
+                  rpm, lossBuf, rssiBuf,
                   copy[i].lastSeenMillis == 0 ? 0UL
                       : (unsigned long)(nowMillis - copy[i].lastSeenMillis));
   }
-  Serial.printf("pair=%s heap=%lu\n",
-                nowMillis < pairingWindowEndMs ? "OPEN" : "closed",
-                (unsigned long)ESP.getFreeHeap());
+  Serial.printf("pair=%s\n", nowMillis < pairingWindowEndMs ? "OPEN" : "closed");
 #endif
 }
 
@@ -550,7 +565,10 @@ void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
         deckStates[i].seen = false;
         deckStates[i].lastSeq = 0;
         deckStates[i].lastPingMillis = 0;
-        deckStates[i].packetCount = 0;
+        deckStates[i].rxWindow = 0;
+        deckStates[i].lostWindow = 0;
+        deckStates[i].rssiSum = 0;
+        deckStates[i].rssiMin = 127;
         slot = (int)i;
         break;
       }
@@ -584,14 +602,21 @@ void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
   }
   if (packet.msgType != MSG_DATA) return;
 
-  uint16_t lost = 0;
+  int8_t rssi = (int8_t)(info->rx_ctrl ? info->rx_ctrl->rssi : 0);
   portENTER_CRITICAL_ISR(&stateMux);
-  if (state->seen) { uint32_t d = packet.seq - state->lastSeq; if (d > 0) lost = (uint16_t)min(d - 1, 65535UL); }
+  if (state->seen) {
+    uint32_t d = packet.seq - state->lastSeq;
+    // d==1 is the normal step. A huge jump means the puck rebooted (seq
+    // reset), not real loss - don't count those.
+    if (d > 1 && d < 10000)
+      state->lostWindow = (uint16_t)min((uint32_t)state->lostWindow + (d - 1), 65535UL);
+  }
   state->seen = true;
   state->rpmCenti = packet.rpmCenti;
   state->lastSeq = packet.seq;
-  state->packetCount++;
-  state->lostPackets = lost;
+  state->rxWindow++;
+  state->rssiSum += rssi;
+  if (state->rssiMin == 127 || rssi < state->rssiMin) state->rssiMin = rssi;
   portEXIT_CRITICAL_ISR(&stateMux);
 }
 
