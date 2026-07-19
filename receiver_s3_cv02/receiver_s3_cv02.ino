@@ -45,6 +45,16 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 #define PING_INTERVAL_MS 500
 #define DECK_TIMEOUT_MS 1000
 
+// ===== Auto-pairing (receiver assigns decks by transmitter MAC) ========
+// Power the receiver first: for PAIRING_WINDOW_MS an unknown puck may claim
+// a free deck (first to arrive = deck 1, second = deck 2). A puck already
+// in the table (dropped and powered back on) reclaims its own deck at any
+// time, window or not. Table is RAM-only: rebooting the receiver, or a long
+// press on the re-pair button, clears it and reopens the window.
+#define PAIRING_WINDOW_MS 60000UL
+#define REPAIR_BTN_PIN 4           // momentary button to GND (INPUT_PULLUP)
+#define REPAIR_HOLD_MS 1500        // long-press duration to clear + re-open
+
 // ===== Dicer (unit 3) -> USB-MIDI [TEST] ==============================
 // The dicer sends its full button state as MSG_BUTTONS; we diff states
 // into MIDI note on/off on the S3's NATIVE USB port. Requires Tools >
@@ -132,6 +142,7 @@ typedef struct __attribute__((packed)) {
 } dvs_packet;
 
 typedef struct {
+  bool     assigned;        // slot has an owner MAC (sticky for the session)
   bool     seen;
   int16_t  rpmCenti;
   uint32_t lastSeq;
@@ -139,7 +150,7 @@ typedef struct {
   uint32_t lastPingMillis;
   uint32_t packetCount;
   uint16_t lostPackets;
-  uint8_t  mac[6];
+  uint8_t  mac[6];          // owner MAC, set at assignment, matched thereafter
 } deck_state;
 
 typedef struct {
@@ -153,6 +164,13 @@ typedef struct {
 
 deck_state deckStates[2];
 portMUX_TYPE stateMux = portMUX_INITIALIZER_UNLOCKED;
+
+// Unknown pucks may claim a free deck only while now < this (absolute millis).
+volatile uint32_t pairingWindowEndMs = 0;
+
+static inline bool macEq(const uint8_t *a, const uint8_t *b) {
+  return memcmp(a, b, 6) == 0;
+}
 
 volatile bool hasPendingWelcome = false;
 uint8_t pendingWelcomeMac[6];
@@ -238,7 +256,9 @@ void debugPrintStatus() {
                   copy[i].lastSeenMillis == 0 ? 0UL
                       : (unsigned long)(nowMillis - copy[i].lastSeenMillis));
   }
-  Serial.printf("heap=%lu\n", (unsigned long)ESP.getFreeHeap());
+  Serial.printf("pair=%s heap=%lu\n",
+                nowMillis < pairingWindowEndMs ? "OPEN" : "closed",
+                (unsigned long)ESP.getFreeHeap());
 #endif
 }
 
@@ -344,13 +364,17 @@ static bool ledBlinkPhase(uint32_t now, bool low1, bool low2) {
 void serviceLed() {
   uint32_t now = millis();
   int onlineCount = onlineDeckCount();
+  bool pairingOpen = now < pairingWindowEndMs;
   bool low1 = deckBattLowUntil[0] != 0 && now < deckBattLowUntil[0];
   bool low2 = deckBattLowUntil[1] != 0 && now < deckBattLowUntil[1];
   uint8_t r, g, b;
   if      (onlineCount >= 2) { r = 0;   g = 255; b = 0; }   // green
   else if (onlineCount == 1) { r = 255; g = 80;  b = 0; }   // orange
+  else if (pairingOpen)      { r = 0;   g = 0;   b = 255; } // blue: waiting to pair
   else                       { r = 255; g = 0;   b = 0; }   // red
-  if (!ledBlinkPhase(now, low1, low2)) { r = 0; g = 0; b = 0; }
+  bool on = ledBlinkPhase(now, low1, low2);
+  if (pairingOpen) on = on && ((now % 800) < 400);          // blink while pairing
+  if (!on) { r = 0; g = 0; b = 0; }
   uint32_t packed = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
   if (packed == lastLedPacked) return;             // refresh only on change
   lastLedPacked = packed;
@@ -400,7 +424,9 @@ void sendControlMessage(const uint8_t *mac, uint8_t deckId, uint8_t msgType) {
 void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
   if (len != sizeof(dvs_packet)) return;
   dvs_packet packet; memcpy(&packet, data, sizeof(packet));
-  if (packet.version != PROTOCOL_VERSION || packet.deckId < 1 || packet.deckId > 3) return;
+  // Transmitters now send deckId 0 (unassigned) and are routed by MAC; the
+  // experimental dicer still identifies itself as deckId 3.
+  if (packet.version != PROTOCOL_VERSION || packet.deckId > 3) return;
 
   const uint8_t *src = info->src_addr;
 
@@ -429,23 +455,41 @@ void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
     return;
   }
 
-  deck_state *state = &deckStates[packet.deckId - 1];
-
+  // ---- Transmitter: find this MAC's deck, or assign a free one -------
+  int slot = -1;
   portENTER_CRITICAL_ISR(&stateMux);
-  memcpy(state->mac, src, 6);
-  state->lastSeenMillis = millis();
+  for (uint8_t i = 0; i < 2; i++)
+    if (deckStates[i].assigned && macEq(deckStates[i].mac, src)) { slot = (int)i; break; }
+  if (slot < 0 && millis() < pairingWindowEndMs) {
+    for (uint8_t i = 0; i < 2; i++)
+      if (!deckStates[i].assigned) {
+        deckStates[i].assigned = true;
+        memcpy(deckStates[i].mac, src, 6);
+        deckStates[i].seen = false;
+        deckStates[i].lastSeq = 0;
+        deckStates[i].lastPingMillis = 0;
+        deckStates[i].packetCount = 0;
+        slot = (int)i;
+        break;
+      }
+  }
+  if (slot >= 0) deckStates[slot].lastSeenMillis = millis();
   portEXIT_CRITICAL_ISR(&stateMux);
+  if (slot < 0) return;    // unknown MAC, window closed or both decks taken
+
+  deck_state *state = &deckStates[slot];
+  uint8_t deckNum = (uint8_t)slot + 1;
 
   if (packet.msgType == MSG_HELLO) {
     portENTER_CRITICAL_ISR(&stateMux);
     memcpy(pendingWelcomeMac, src, 6);
-    pendingWelcomeDeck = packet.deckId; hasPendingWelcome = true;
+    pendingWelcomeDeck = deckNum; hasPendingWelcome = true;
     portEXIT_CRITICAL_ISR(&stateMux);
     return;
   }
   if (packet.msgType == MSG_EVENT) {
     portENTER_CRITICAL_ISR(&stateMux);
-    pendingEventDeck = packet.deckId;
+    pendingEventDeck = deckNum;
     pendingEventCode = (uint8_t)packet.rpmCenti;
     pendingEventValue = packet.timestampMicros;
     hasPendingEvent = true;
@@ -613,12 +657,37 @@ void serviceEspNowControl() {
     uint8_t m[6]; bool ping = false;
     portENTER_CRITICAL(&stateMux);
     deck_state *s = &deckStates[i];
-    if (s->lastSeenMillis && now - s->lastSeenMillis <= DECK_TIMEOUT_MS && now - s->lastPingMillis >= PING_INTERVAL_MS) {
+    if (s->assigned && s->lastSeenMillis && now - s->lastSeenMillis <= DECK_TIMEOUT_MS && now - s->lastPingMillis >= PING_INTERVAL_MS) {
       memcpy(m, s->mac, 6); s->lastPingMillis = now; ping = true;
     }
     portEXIT_CRITICAL(&stateMux);
     if (ping) sendControlMessage(m, i + 1, MSG_PING);
   }
+}
+
+// Long-press the re-pair button to drop both pucks and reopen the pairing
+// window, so a replacement puck can be slotted without a power cycle.
+void serviceRepairButton() {
+  static uint32_t pressStart = 0;
+  static bool fired = false;
+  if (digitalRead(REPAIR_BTN_PIN) != LOW) { pressStart = 0; fired = false; return; }
+  uint32_t now = millis();
+  if (pressStart == 0) { pressStart = now; return; }
+  if (fired || now - pressStart < REPAIR_HOLD_MS) return;
+  fired = true;
+  portENTER_CRITICAL(&stateMux);
+  for (uint8_t i = 0; i < 2; i++) {
+    deckStates[i].assigned = false;
+    deckStates[i].seen = false;
+    deckStates[i].lastSeenMillis = 0;
+    memset(deckStates[i].mac, 0, 6);
+  }
+  pairingWindowEndMs = now + PAIRING_WINDOW_MS;
+  portEXIT_CRITICAL(&stateMux);
+#if FAILOVER_ENABLE
+  failHolding[0] = failHolding[1] = false;   // stop any held-rpm output
+#endif
+  debugBootLog("RE-PAIR: pairings cleared, pairing window reopened");
 }
 
 int onlineDeckCount() {
@@ -633,6 +702,7 @@ int onlineDeckCount() {
 // ===== setup / loop ==================================================
 void setup() {
   setupDebugSerial();
+  pinMode(REPAIR_BTN_PIN, INPUT_PULLUP);
   led.begin();
   led.setBrightness(LED_BRIGHTNESS);
   serviceLed();                       // start red (no transmitters)
@@ -648,7 +718,8 @@ void setup() {
 
   debugBootLog("Starting ESP-NOW...");
   setupEspNow();
-  debugBootLog("ESP-NOW OK");
+  pairingWindowEndMs = millis() + PAIRING_WINDOW_MS;   // open the pairing window
+  debugBootLog("ESP-NOW OK - pairing window open (power the pucks now)");
 
   xTaskCreatePinnedToCore(audioTask, audioDecks[0].taskName, 8192, &audioDecks[0], 3, NULL, 1);
   xTaskCreatePinnedToCore(audioTask, audioDecks[1].taskName, 8192, &audioDecks[1], 3, NULL, 1);
@@ -662,6 +733,7 @@ void setup() {
 }
 
 void loop() {
+  serviceRepairButton();
   serviceEspNowControl();
   serviceTransmitterEvents();
   serviceFailoverLog();
