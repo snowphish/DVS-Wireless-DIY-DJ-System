@@ -24,7 +24,14 @@
 #include <math.h>
 
 // ===== Identity =======================================================
-#define DECK_ID 1                // second unit: set to 2
+// The puck carries no deck number and no receiver MAC. It broadcasts, and
+// the receiver auto-assigns a deck by this puck's (factory, stable) MAC:
+// first puck to reach the receiver during its pairing window = deck 1,
+// second = deck 2, and a puck that drops and returns reclaims its slot.
+// Outgoing packets send deckId 0 ("unassigned"); the receiver ignores it
+// and routes by MAC. The assigned deck comes back in WELCOME/PING, for
+// serial display only.
+#define DECK_ID 0
 
 // ===== BMI160 (gyro) ==================================================
 #define SDA_PIN 8
@@ -122,8 +129,8 @@
 #define CAL_MIN_COMPARE 20
 #define CAL_STABLE_DPS 2.0f       // allowed jitter while "stopped"
 
- uint8_t receiverMAC[] = { 0x84, 0xFC, 0xE6, 0x61, 0x1C, 0x0C };
-// testboard uint8_t receiverMAC[] = { 0x44, 0x1B, 0xF6, 0x8C, 0xB0, 0x08 };
+// No receiver MAC to configure: the puck broadcasts and the receiver pairs
+// to us by our MAC. Same binary flashes to every puck.
 uint8_t broadcastMAC[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 typedef struct __attribute__((packed)) {
@@ -140,6 +147,7 @@ dvs_packet packet;
 
 volatile bool     receiverReady = false;
 volatile uint32_t lastReceiverReplyMillis = 0;
+volatile uint8_t  assignedDeck = 0;        // deck the receiver reports (0 = none yet)
 
 float    gyroOffsetZ = 0.0f;
 float    filteredRPM = 0.0f;
@@ -328,8 +336,11 @@ void OnDataSent(const wifi_tx_info_t *info, esp_now_send_status_t status) {
 void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *dataPtr, int len) {
   if (len != sizeof(dvs_packet)) return;
   dvs_packet in; memcpy(&in, dataPtr, sizeof(in));
-  if (in.version != PROTOCOL_VERSION || in.deckId != DECK_ID) return;
+  if (in.version != PROTOCOL_VERSION) return;
+  // WELCOME/PING are unicast to our MAC, so they are for us whatever deck
+  // number they carry; adopt the deck the receiver assigned (display only).
   if (in.msgType == MSG_WELCOME || in.msgType == MSG_PING) {
+    assignedDeck = in.deckId;
     receiverReady = true;
     lastReceiverReplyMillis = millis();
   }
@@ -343,26 +354,16 @@ void setupEspNow() {
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);
 
-  esp_now_peer_info_t peer = {};
-  memcpy(peer.peer_addr, receiverMAC, 6);
-  peer.channel = ESPNOW_CHANNEL; peer.encrypt = false;
-  if (esp_now_add_peer(&peer) != ESP_OK) { while (true) { Serial.println("ERR add_peer"); delay(1000); } }
-
-#if USE_BROADCAST
   esp_now_peer_info_t bcast = {};
   memcpy(bcast.peer_addr, broadcastMAC, 6);
   bcast.channel = ESPNOW_CHANNEL; bcast.encrypt = false;
-  esp_now_add_peer(&bcast);
-#endif
+  if (esp_now_add_peer(&bcast) != ESP_OK) { while (true) { Serial.println("ERR add_peer"); delay(1000); } }
 
 #if ESPNOW_FAST_RATE
   esp_now_rate_config_t rateCfg = {};
   rateCfg.phymode = WIFI_PHY_MODE_11G;
   rateCfg.rate = WIFI_PHY_RATE_24M;
-  esp_now_set_peer_rate_config(receiverMAC, &rateCfg);
-#if USE_BROADCAST
   esp_now_set_peer_rate_config(broadcastMAC, &rateCfg);
-#endif
 #endif
 }
 
@@ -370,7 +371,7 @@ void sendControlMessage(uint8_t msgType) {
   dvs_packet c = {};
   c.msgType = msgType; c.version = PROTOCOL_VERSION; c.deckId = DECK_ID;
   c.seq = sequenceNumber; c.timestampMicros = micros();
-  esp_now_send(receiverMAC, (uint8_t *)&c, sizeof(c));
+  esp_now_send(broadcastMAC, (uint8_t *)&c, sizeof(c));
 }
 
 // Status event -> receiver serial. rpmCenti carries the event code,
@@ -380,7 +381,7 @@ void sendEventMessage(uint8_t code, float value) {
   e.msgType = MSG_EVENT; e.version = PROTOCOL_VERSION; e.deckId = DECK_ID;
   e.rpmCenti = code;
   e.timestampMicros = (uint32_t)lroundf(value * 1000000.0f);
-  esp_now_send(receiverMAC, (uint8_t *)&e, sizeof(e));
+  esp_now_send(broadcastMAC, (uint8_t *)&e, sizeof(e));
 }
 
 void waitForReceiver() {
@@ -471,7 +472,7 @@ void setup() {
   setupEspNow();
   Serial.println("BOOT: espnow OK, waiting for receiver...");
   waitForReceiver();
-  Serial.println("BOOT: receiver linked");
+  Serial.printf("BOOT: receiver linked, assigned deck %u\n", assignedDeck);
   // Link is up now - tell the receiver's serial our calibration state
   // (the puck's own serial is unreachable once it's on the platter).
   sendEventMessage(spinCalLearned ? EVT_TRIM_LOADED : EVT_TRIM_MISSING,
@@ -508,11 +509,7 @@ void loop() {
   packet.seq = sequenceNumber++;
   packet.timestampMicros = now;
 
-#if USE_BROADCAST
   esp_now_send(broadcastMAC, (uint8_t *)&packet, sizeof(packet));
-#else
-  esp_now_send(receiverMAC,  (uint8_t *)&packet, sizeof(packet));
-#endif
 
   if (millis() - lastReceiverReplyMillis > HANDSHAKE_TIMEOUT_MS) {
     receiverReady = false;
