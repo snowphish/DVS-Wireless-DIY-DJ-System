@@ -51,7 +51,8 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // ===== Auto-pairing (receiver assigns decks by transmitter MAC) ========
 // Power the receiver first: for PAIRING_WINDOW_MS an unknown puck may claim
-// a free deck (first to arrive = deck 1, second = deck 2). A puck already
+// a free deck (first to arrive = deck 1, second = deck 2); the window closes
+// early as soon as both decks are claimed. A puck already
 // in the table (dropped and powered back on) reclaims its own deck at any
 // time, window or not. Table is RAM-only: rebooting the receiver, or a long
 // press on the re-pair button, clears it and reopens the window.
@@ -479,6 +480,10 @@ void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
         slot = (int)i;
         break;
       }
+    // Both decks claimed -> close the window right away (LED stops its
+    // pairing blink and no third unit can sneak in).
+    if (deckStates[0].assigned && deckStates[1].assigned)
+      pairingWindowEndMs = millis();
   }
   if (slot >= 0) deckStates[slot].lastSeenMillis = millis();
   portEXIT_CRITICAL_ISR(&stateMux);
