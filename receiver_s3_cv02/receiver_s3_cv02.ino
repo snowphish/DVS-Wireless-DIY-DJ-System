@@ -129,12 +129,24 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 #define OUTPUT_GAIN 0.30f
 
 // ===== CV02 generator (Serato/Bridge-compatible) ======================
-#define CV02_RESOLUTION 1000
+#define CV02_RESOLUTION 1000        // position bits per second at 33 1/3 rpm
 #define CV02_BITS 20
 #define CV02_SEED 0x59017UL
 #define CV02_TAPS 0x361e4UL
-#define CV02_LENGTH 712000UL
-#define CV02_PACKED_BYTES ((CV02_LENGTH + 7) / 8)
+#define CV02_LENGTH 712000UL        // full record: ~11.9 min of groove
+// Loop a short window from the MIDDLE of the record instead of playing all of
+// it. At the record's run-out Serato sees end-of-record and drops to INTERNAL;
+// a backspin past position 0 also wraps (mod) into that same end zone. Staying
+// in a mid-record window keeps the absolute position clear of both the lead-in
+// and the run-out. RELATIVE MODE ONLY - each wrap is a harmless needle-skip in
+// REL; in ABS mode the deck would jump every CV02_LOOP_SECONDS. (The original
+// firmware avoided this by accident: a uint32 phase wrapped at bit 65536,
+// ~65 s, so it never reached the end zone.)
+#define CV02_LOOP_SECONDS 300UL
+#define CV02_LOOP_START_SECONDS 30UL          // skip past the lead-in
+#define CV02_LOOP_BITS (CV02_LOOP_SECONDS * CV02_RESOLUTION)
+#define CV02_LOOP_START_BITS (CV02_LOOP_START_SECONDS * CV02_RESOLUTION)
+#define CV02_PACKED_BYTES ((CV02_LOOP_BITS + 7) / 8)
 
 typedef struct __attribute__((packed)) {
   uint8_t  msgType;
@@ -425,7 +437,8 @@ static inline uint8_t getPackedBit(uint32_t i) {
 void buildCv02Bits() {
   memset(cv02PackedBits, 0, sizeof(cv02PackedBits));
   uint32_t code = CV02_SEED;
-  for (uint32_t i = 0; i < CV02_LENGTH; i++) { setPackedBit(i, (uint8_t)(code & 1U)); code = lfsrForward(code); }
+  for (uint32_t i = 0; i < CV02_LOOP_START_BITS; i++) code = lfsrForward(code);   // skip lead-in
+  for (uint32_t i = 0; i < CV02_LOOP_BITS; i++) { setPackedBit(i, (uint8_t)(code & 1U)); code = lfsrForward(code); }
 }
 
 // ===== ESP-NOW =======================================================
@@ -621,7 +634,7 @@ static inline void renderCv02Sample(audio_deck_state *deck, int64_t phaseStep,
   deck->cv02Phase += phaseStep;
 
   int64_t cyc = deck->cv02Phase >> CV02_FRAC_BITS;
-  uint32_t cycleIndex = (uint32_t)(((cyc % (int64_t)CV02_LENGTH) + (int64_t)CV02_LENGTH) % (int64_t)CV02_LENGTH);
+  uint32_t cycleIndex = (uint32_t)(((cyc % (int64_t)CV02_LOOP_BITS) + (int64_t)CV02_LOOP_BITS) % (int64_t)CV02_LOOP_BITS);
   float frac = (float)(uint32_t)deck->cv02Phase * (1.0f / CV02_FRAC_ONE);
 
   float angle = frac * 6.28318530718f;
@@ -664,7 +677,7 @@ float readTargetRpm(uint8_t deckId) {
 void audioTask(void *param) {
   audio_deck_state *deck = (audio_deck_state *)param;
   int16_t buffer[DMA_BUF_LEN * 2];
-  const int64_t phaseSpan = (int64_t)CV02_LENGTH << CV02_FRAC_BITS;
+  const int64_t phaseSpan = (int64_t)CV02_LOOP_BITS << CV02_FRAC_BITS;
   while (true) {
     float target = readTargetRpm(deck->deckId);
     deck->filteredRpm += (target - deck->filteredRpm) * RPM_SMOOTHING;
