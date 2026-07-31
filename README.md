@@ -138,7 +138,21 @@ puck connection, wait for live RPM to return, then switch back to Relative.
 | [`Windows_Manager`](Windows_Manager) | Ready-to-run Windows Manager and USB protocol |
 | [`Source/DVSManager`](Source/DVSManager) | Complete .NET 8 WPF source |
 | [`docs`](docs) | GitHub Pages web flasher, manifests, and merged binaries |
+| [`old`](old) | Preserved legacy firmware for original/non-custom-PCB builds |
 | [`licenses`](licenses) | Included third-party license notices |
+
+## Legacy firmware for non-custom-PCB builds
+
+The restored [`old/`](old) directory preserves the earlier standalone receiver
+and transmitter sketches for builders using the original wiring or their own
+non-custom-PCB hardware. These builds use the older manual configuration
+workflow, including transmitter deck IDs and receiver MAC settings, and do not
+include the current unified receiver or Windows Manager protocol.
+
+Read the hardware, pin, pairing, and flashing notes inside each legacy
+subfolder before using them. They are retained for compatibility and reference;
+the web flasher continues to install only the current firmware under
+[`Firmware/`](Firmware).
 
 ## Firmware build settings
 
