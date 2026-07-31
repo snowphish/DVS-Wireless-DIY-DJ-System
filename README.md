@@ -1,5 +1,18 @@
 # Wireless DIY DVS
 
+## Lineage and AI authorship disclosure
+
+This project grew from
+[FelipeAlme/DVS-Wireless-DIY-DJ-System](https://github.com/FelipeAlme/DVS-Wireless-DIY-DJ-System),
+which established the original transmitter and receiver system. This fork has
+since been substantially reworked with unified receiver control, calibration,
+automatic pairing, failover, telemetry, the Windows Manager, and web flashing.
+
+**All programming in this fork has been done by AI.** The project owner has
+provided the requirements, hardware design decisions, physical builds, testing,
+diagnosis feedback, and final approval, while AI systems generated and modified
+the firmware, desktop application, web flasher, build tooling, and documentation.
+
 Wireless DIY DVS turns two ordinary turntables into a two-deck digital vinyl
 control system without needles or timecode records. Battery-powered ESP32-C3
 gyro pucks measure platter movement over ESP-NOW, while one ESP32-S3 receiver
@@ -137,12 +150,7 @@ version 1. If either is changed, every board must be rebuilt together.
 Bench-test direction, stop stability, calibration, both DAC outputs, link-loss
 recovery, battery readings, and the selected Serato/Traktor mode before live use.
 
-## Lineage and trademarks
-
-This project grew from
-[FelipeAlme/DVS-Wireless-DIY-DJ-System](https://github.com/FelipeAlme/DVS-Wireless-DIY-DJ-System)
-and has since been substantially reworked with unified receiver control,
-calibration, automatic pairing, failover, telemetry, and the Windows Manager.
+## Trademarks
 
 Serato and Traktor are trademarks of their respective owners. This project is
 not affiliated with or endorsed by Serato or Native Instruments.
