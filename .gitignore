@@ -1,4 +1,19 @@
-.claude/
-timecode1.wav
-*/build/
-CAD Cases/PCB TRANS/
+# Local tooling and Codex workspace metadata
+.tools/
+.agents/
+.codex/
+
+# .NET / Visual Studio build output
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.log
+

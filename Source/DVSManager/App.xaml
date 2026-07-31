@@ -1,0 +1,174 @@
+<Application x:Class="DVSManager.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+  <Application.Resources>
+    <Color x:Key="WindowColor">#090E18</Color>
+    <Color x:Key="PanelColor">#111927</Color>
+    <Color x:Key="PanelRaisedColor">#162234</Color>
+    <Color x:Key="BorderColor">#28364B</Color>
+    <Color x:Key="TextColor">#F4F7FB</Color>
+    <Color x:Key="MutedColor">#91A1B8</Color>
+    <Color x:Key="CyanColor">#55D8FF</Color>
+    <Color x:Key="GreenColor">#55E6A5</Color>
+    <Color x:Key="AmberColor">#FFCA68</Color>
+    <Color x:Key="RedColor">#FF6B7D</Color>
+
+    <SolidColorBrush x:Key="WindowBrush" Color="{StaticResource WindowColor}"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource PanelColor}"/>
+    <SolidColorBrush x:Key="PanelRaisedBrush" Color="{StaticResource PanelRaisedColor}"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}"/>
+    <SolidColorBrush x:Key="MutedBrush" Color="{StaticResource MutedColor}"/>
+    <SolidColorBrush x:Key="CyanBrush" Color="{StaticResource CyanColor}"/>
+    <SolidColorBrush x:Key="GreenBrush" Color="{StaticResource GreenColor}"/>
+    <SolidColorBrush x:Key="AmberBrush" Color="{StaticResource AmberColor}"/>
+    <SolidColorBrush x:Key="RedBrush" Color="{StaticResource RedColor}"/>
+
+    <Style TargetType="Window">
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+      <Setter Property="Background" Value="{StaticResource WindowBrush}"/>
+    </Style>
+
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style x:Key="MutedText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+      <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <Style x:Key="SectionTitle" TargetType="TextBlock"
+           BasedOn="{StaticResource {x:Type TextBlock}}">
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+
+    <Style x:Key="ComboBoxText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#101722"/>
+      <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    <Style TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+      <Setter Property="Background" Value="{StaticResource PanelRaisedBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonBorder"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="7"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ButtonBorder" Property="Background" Value="#213149"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.82"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="{StaticResource CyanBrush}"/>
+      <Setter Property="Foreground" Value="#071018"/>
+      <Setter Property="BorderBrush" Value="{StaticResource CyanBrush}"/>
+    </Style>
+
+    <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="#32FF6B7D"/>
+      <Setter Property="BorderBrush" Value="{StaticResource RedBrush}"/>
+    </Style>
+
+    <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="Margin" Value="0,0,0,6"/>
+      <Setter Property="Padding" Value="12,10"/>
+    </Style>
+
+    <Style x:Key="NavButtonActive" TargetType="Button" BasedOn="{StaticResource NavButton}">
+      <Setter Property="Background" Value="#2455D8FF"/>
+      <Setter Property="BorderBrush" Value="#6055D8FF"/>
+    </Style>
+
+    <Style TargetType="ComboBox">
+      <!-- The native Windows ComboBox chrome renders its selection area light,
+           so use a dark foreground for readable selected values. -->
+      <Setter Property="Foreground" Value="#101722"/>
+      <Setter Property="Background" Value="#F4F7FB"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+      <Setter Property="Padding" Value="9,7"/>
+    </Style>
+
+    <Style TargetType="ComboBoxItem">
+      <Setter Property="Foreground" Value="#101722"/>
+      <Setter Property="Padding" Value="8,5"/>
+    </Style>
+
+    <Style TargetType="Slider">
+      <Setter Property="Foreground" Value="{StaticResource CyanBrush}"/>
+    </Style>
+
+    <Style TargetType="CheckBox">
+      <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="PanelBorder" TargetType="Border">
+      <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <Style x:Key="MetricBorder" TargetType="Border">
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+      <Setter Property="BorderThickness" Value="2,0,0,0"/>
+      <Setter Property="Padding" Value="10,0,4,0"/>
+    </Style>
+
+    <Style x:Key="BatteryProgress" TargetType="ProgressBar">
+      <Setter Property="Height" Value="14"/>
+      <Setter Property="Minimum" Value="0"/>
+      <Setter Property="Maximum" Value="100"/>
+      <Setter Property="Foreground" Value="{StaticResource GreenBrush}"/>
+      <Setter Property="Background" Value="#263247"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ProgressBar">
+            <Border Background="{TemplateBinding Background}" CornerRadius="7">
+              <Grid x:Name="PART_Track" ClipToBounds="True">
+                <Border x:Name="PART_Indicator"
+                        HorizontalAlignment="Left"
+                        Background="{TemplateBinding Foreground}"
+                        CornerRadius="7"/>
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Application.Resources>
+</Application>

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DVSManager</AssemblyName>
+    <RootNamespace>DVSManager</RootNamespace>
+    <Version>1.0.0</Version>
+    <Authors>DIY DVS</Authors>
+    <Product>DVS Manager</Product>
+    <Description>USB management application for the DIY wireless DVS receiver.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Ports">
+      <HintPath>lib\System.IO.Ports.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

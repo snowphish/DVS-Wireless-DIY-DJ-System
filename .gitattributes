@@ -1,0 +1,4 @@
+# The self-contained Windows Manager executables exceed GitHub's 100 MB
+# regular-file limit, so preserve them through Git LFS.
+Windows_Manager/*.exe filter=lfs diff=lfs merge=lfs -text
+

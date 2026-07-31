@@ -1,0 +1,499 @@
+<Window x:Class="DVSManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="DVS Manager"
+        Width="1200" Height="820"
+        MinWidth="960" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Closing="Window_Closing">
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" CornerRadius="0"/>
+  </shell:WindowChrome.WindowChrome>
+
+  <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="{StaticResource WindowBrush}">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="50"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+              MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <Grid Margin="14,0,8,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+            <Border Width="31" Height="31" CornerRadius="8" Background="{StaticResource CyanBrush}">
+              <TextBlock Text="DVS" Foreground="#071018" FontSize="11" FontWeight="Bold"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+              <TextBlock Text="DVS Manager" FontWeight="SemiBold"/>
+              <TextBlock Text="Wireless timecode receiver" Style="{StaticResource MutedText}"/>
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button Width="42" Height="34" Padding="0" BorderBrush="Transparent" Background="Transparent"
+                    Content="—" ToolTip="Minimize to tray" Click="MinimizeButton_Click"/>
+            <Button Width="42" Height="34" Padding="0" BorderBrush="Transparent" Background="Transparent"
+                    Content="□" ToolTip="Maximize or restore" Click="MaximizeButton_Click"/>
+            <Button Width="42" Height="34" Padding="0" BorderBrush="Transparent" Background="Transparent"
+                    Content="×" ToolTip="Close to tray" Click="CloseButton_Click"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="170"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0"
+                Background="#08101C">
+          <Grid Margin="12,18,12,12">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0">
+              <Button x:Name="OverviewNav" Tag="Overview" Style="{StaticResource NavButtonActive}"
+                      Content="⌂   Overview" Click="Navigation_Click"/>
+              <Button x:Name="PucksNav" Tag="Pucks" Style="{StaticResource NavButton}"
+                      Content="◉   Pucks" Click="Navigation_Click"/>
+              <Button x:Name="SettingsNav" Tag="Settings" Style="{StaticResource NavButton}"
+                      Content="⚙   Settings" Click="Navigation_Click"/>
+              <Button x:Name="ActivityNav" Tag="Activity" Style="{StaticResource NavButton}"
+                      Content="☷   Activity" Click="Navigation_Click"/>
+            </StackPanel>
+            <StackPanel Grid.Row="2">
+              <TextBlock x:Name="FirmwareSidebarText" Text="Firmware —" Style="{StaticResource MutedText}"/>
+              <TextBlock Text="Manager 1.0.0 · Protocol 1" Style="{StaticResource MutedText}" Margin="0,3,0,0"/>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Grid Grid.Column="1">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="72"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+
+          <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="20,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Ellipse x:Name="ConnectionDot" Width="10" Height="10" Fill="{StaticResource AmberBrush}" Margin="0,0,11,0"/>
+                <StackPanel>
+                  <TextBlock x:Name="ConnectionTitle" Text="Looking for receiver…" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="ConnectionDetail" Text="Connect the ESP32-S3 by USB" Style="{StaticResource MutedText}"/>
+                </StackPanel>
+              </StackPanel>
+              <Button Grid.Column="1" x:Name="ReconnectButton" Content="Reconnect" VerticalAlignment="Center"
+                      Click="ReconnectButton_Click"/>
+            </Grid>
+          </Border>
+
+          <Border Grid.Row="1" x:Name="ToastBorder" Visibility="Collapsed"
+                  Background="#2055D8FF" BorderBrush="#7055D8FF" BorderThickness="0,0,0,1"
+                  Padding="20,10">
+            <TextBlock x:Name="ToastText" Text="Settings saved on receiver."/>
+          </Border>
+
+          <Grid Grid.Row="2" Margin="20,18,20,16">
+            <ScrollViewer x:Name="OverviewPage" VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <Grid Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="Live decks" Style="{StaticResource SectionTitle}" Margin="0"/>
+                  <TextBlock Grid.Column="1" x:Name="FormatSummaryText" Text="Waiting for receiver"
+                             Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                </Grid>
+
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+
+                  <Border Grid.Column="0" Style="{StaticResource PanelBorder}">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/>
+                          <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                          <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource PanelRaisedBrush}">
+                            <TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                          </Border>
+                          <StackPanel Margin="10,0,0,0">
+                            <TextBlock Text="Deck 1" FontWeight="SemiBold" FontSize="15"/>
+                            <TextBlock x:Name="Deck1IdentityText" Text="Waiting for puck" Style="{StaticResource MutedText}"/>
+                          </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                          <Ellipse x:Name="Deck1StateDot" Width="8" Height="8" Fill="{StaticResource MutedBrush}" Margin="0,0,7,0"/>
+                          <TextBlock x:Name="Deck1StateText" Text="OFFLINE" FontWeight="SemiBold"/>
+                        </StackPanel>
+                      </Grid>
+
+                      <Grid Margin="0,18,0,6">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/>
+                          <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Battery" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" x:Name="Deck1BatteryPercentText" Text="—" FontWeight="SemiBold"/>
+                      </Grid>
+                      <Grid>
+                        <ProgressBar x:Name="Deck1BatteryBar" Style="{StaticResource BatteryProgress}" Value="0"/>
+                        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="#B0071118" CornerRadius="5" Padding="7,1"
+                                IsHitTestVisible="False">
+                          <TextBlock x:Name="Deck1BatteryText" Text="No reading"
+                                     FontSize="16" FontWeight="Bold" TextWrapping="NoWrap"/>
+                        </Border>
+                      </Grid>
+                      <Grid Margin="0,4,0,0">
+                        <TextBlock Text="3.0 V" Style="{StaticResource MutedText}"/>
+                        <TextBlock Text="4.2 V" Style="{StaticResource MutedText}" HorizontalAlignment="Right"/>
+                      </Grid>
+
+                      <UniformGrid Columns="4" Margin="0,17,0,0">
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="RPM" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck1RpmText" Text="0.00" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="Signal (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck1RssiText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="Loss (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck1LossText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="Last packet" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck1AgeText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                      </UniformGrid>
+
+                      <Border x:Name="Deck1HoldingBorder" Visibility="Collapsed" Margin="0,14,0,0"
+                              Background="#20FFCA68" BorderBrush="{StaticResource AmberBrush}"
+                              BorderThickness="3,0,0,0" Padding="11,8">
+                        <TextBlock><Run FontWeight="SemiBold" Text="Timecode is holding. "/><Run Text="Switch to Internal, reconnect the puck, then return to Relative."/></TextBlock>
+                      </Border>
+                      <TextBlock x:Name="Deck1CalibrationText" Margin="0,12,0,0" Style="{StaticResource MutedText}" Text="No calibration message"/>
+                    </StackPanel>
+                  </Border>
+
+                  <Border Grid.Column="2" Style="{StaticResource PanelBorder}">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/>
+                          <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                          <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource PanelRaisedBrush}">
+                            <TextBlock Text="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                          </Border>
+                          <StackPanel Margin="10,0,0,0">
+                            <TextBlock Text="Deck 2" FontWeight="SemiBold" FontSize="15"/>
+                            <TextBlock x:Name="Deck2IdentityText" Text="Waiting for puck" Style="{StaticResource MutedText}"/>
+                          </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                          <Ellipse x:Name="Deck2StateDot" Width="8" Height="8" Fill="{StaticResource MutedBrush}" Margin="0,0,7,0"/>
+                          <TextBlock x:Name="Deck2StateText" Text="OFFLINE" FontWeight="SemiBold"/>
+                        </StackPanel>
+                      </Grid>
+
+                      <Grid Margin="0,18,0,6">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/>
+                          <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Battery" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" x:Name="Deck2BatteryPercentText" Text="—" FontWeight="SemiBold"/>
+                      </Grid>
+                      <Grid>
+                        <ProgressBar x:Name="Deck2BatteryBar" Style="{StaticResource BatteryProgress}" Value="0"/>
+                        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="#B0071118" CornerRadius="5" Padding="7,1"
+                                IsHitTestVisible="False">
+                          <TextBlock x:Name="Deck2BatteryText" Text="No reading"
+                                     FontSize="16" FontWeight="Bold" TextWrapping="NoWrap"/>
+                        </Border>
+                      </Grid>
+                      <Grid Margin="0,4,0,0">
+                        <TextBlock Text="3.0 V" Style="{StaticResource MutedText}"/>
+                        <TextBlock Text="4.2 V" Style="{StaticResource MutedText}" HorizontalAlignment="Right"/>
+                      </Grid>
+
+                      <UniformGrid Columns="4" Margin="0,17,0,0">
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="RPM" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck2RpmText" Text="0.00" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="Signal (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck2RssiText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="Loss (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck2LossText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricBorder}">
+                          <StackPanel><TextBlock Text="Last packet" Style="{StaticResource MutedText}"/><TextBlock x:Name="Deck2AgeText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                        </Border>
+                      </UniformGrid>
+
+                      <Border x:Name="Deck2HoldingBorder" Visibility="Collapsed" Margin="0,14,0,0"
+                              Background="#20FFCA68" BorderBrush="{StaticResource AmberBrush}"
+                              BorderThickness="3,0,0,0" Padding="11,8">
+                        <TextBlock><Run FontWeight="SemiBold" Text="Timecode is holding. "/><Run Text="Switch to Internal, reconnect the puck, then return to Relative."/></TextBlock>
+                      </Border>
+                      <TextBlock x:Name="Deck2CalibrationText" Margin="0,12,0,0" Style="{StaticResource MutedText}" Text="No calibration message"/>
+                    </StackPanel>
+                  </Border>
+                </Grid>
+
+                <Border Style="{StaticResource PanelBorder}" Margin="0,14,0,0">
+                  <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                      <TextBlock Text="Quick controls" FontWeight="SemiBold" FontSize="15"/>
+                      <TextBlock Text="Saved directly on receiver" Style="{StaticResource MutedText}" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="260"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <StackPanel Grid.Column="0">
+                        <TextBlock Text="Calibration spin speed" Style="{StaticResource MutedText}" Margin="0,0,0,5"/>
+                        <ComboBox x:Name="QuickBaseRpmCombo" SelectedIndex="0">
+                          <ComboBoxItem Tag="33.3333"><TextBlock Text="33⅓ RPM" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                          <ComboBoxItem Tag="45"><TextBlock Text="45 RPM" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                        </ComboBox>
+                      </StackPanel>
+                      <WrapPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                        <Button Content="Calibrate pucks at selected speed" Style="{StaticResource PrimaryButton}"
+                                Margin="0,0,8,0" Click="CalibrateButton_Click"/>
+                        <Button Content="Open pairing" Margin="0,0,8,0" Click="OpenPairingButton_Click"/>
+                        <Button x:Name="SwapDecksButton" Content="Swap decks"
+                                IsEnabled="False" ToolTip="Requires receiver firmware 1.2.3 or newer"
+                                Click="SwapDecksButton_Click"/>
+                      </WrapPanel>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorder}" Margin="0,14,0,0">
+                  <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                      <TextBlock Text="Recent activity" FontWeight="SemiBold" FontSize="15"/>
+                      <Button Content="View all" HorizontalAlignment="Right" Padding="10,5"
+                              Tag="Activity" Click="Navigation_Click"/>
+                    </Grid>
+                    <ItemsControl x:Name="RecentActivityList">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Grid Margin="0,5">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="70"/>
+                              <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Time, StringFormat={}{0:HH:mm:ss}}" Style="{StaticResource MutedText}"/>
+                            <StackPanel Grid.Column="1">
+                              <TextBlock Text="{Binding Title}"/>
+                              <TextBlock Text="{Binding Detail}" Style="{StaticResource MutedText}"/>
+                            </StackPanel>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+
+            <ScrollViewer x:Name="PucksPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <Grid Margin="0,0,0,12">
+                  <StackPanel>
+                    <TextBlock Text="Paired pucks" Style="{StaticResource SectionTitle}" Margin="0"/>
+                    <TextBlock Text="Live radio diagnostics from the receiver" Style="{StaticResource MutedText}"/>
+                  </StackPanel>
+                  <Button Content="Open pairing window" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right"
+                          VerticalAlignment="Center" Click="OpenPairingButton_Click"/>
+                </Grid>
+
+                <Border Style="{StaticResource PanelBorder}">
+                  <Grid>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto"/>
+                      <RowDefinition Height="1"/>
+                      <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,2,0,12">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.4*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <StackPanel Grid.Column="0"><TextBlock Text="Deck 1" FontWeight="SemiBold"/><TextBlock x:Name="Puck1MacText" Text="Not paired" Style="{StaticResource MutedText}"/></StackPanel>
+                      <StackPanel Grid.Column="1"><TextBlock Text="Battery" Style="{StaticResource MutedText}"/><TextBlock x:Name="Puck1BatteryText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                      <StackPanel Grid.Column="2"><TextBlock Text="Signal (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Puck1SignalText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                      <StackPanel Grid.Column="3"><TextBlock Text="Packet loss (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Puck1LossText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                    </Grid>
+                    <Border Grid.Row="1" Background="{StaticResource BorderBrush}"/>
+                    <Grid Grid.Row="2" Margin="0,12,0,2">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.4*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <StackPanel Grid.Column="0"><TextBlock Text="Deck 2" FontWeight="SemiBold"/><TextBlock x:Name="Puck2MacText" Text="Not paired" Style="{StaticResource MutedText}"/></StackPanel>
+                      <StackPanel Grid.Column="1"><TextBlock Text="Battery" Style="{StaticResource MutedText}"/><TextBlock x:Name="Puck2BatteryText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                      <StackPanel Grid.Column="2"><TextBlock Text="Signal (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Puck2SignalText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                      <StackPanel Grid.Column="3"><TextBlock Text="Packet loss (7 s avg)" Style="{StaticResource MutedText}"/><TextBlock x:Name="Puck2LossText" Text="—" FontWeight="SemiBold"/></StackPanel>
+                    </Grid>
+                  </Grid>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorder}" Margin="0,14,0,0">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Replace or reorder pucks" FontWeight="SemiBold"/>
+                      <TextBlock Text="Clearing assignments briefly drops both links and reopens pairing." Style="{StaticResource MutedText}" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Clear pairings" Style="{StaticResource DangerButton}"
+                            VerticalAlignment="Center" Click="ClearPairingsButton_Click"/>
+                  </Grid>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+
+            <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <Grid Margin="0,0,0,12">
+                  <StackPanel>
+                    <TextBlock Text="Receiver settings" Style="{StaticResource SectionTitle}" Margin="0"/>
+                    <TextBlock Text="These values are stored in the receiver, not the app." Style="{StaticResource MutedText}"/>
+                  </StackPanel>
+                  <Button Content="Save changes" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right"
+                          VerticalAlignment="Center" Click="SettingsSaveButton_Click"/>
+                </Grid>
+
+                <Border Style="{StaticResource PanelBorder}">
+                  <StackPanel>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Timecode format" FontWeight="SemiBold"/><TextBlock Text="Signal generated for your DJ software" Style="{StaticResource MutedText}"/></StackPanel>
+                      <ComboBox Grid.Column="1" x:Name="SettingsFormatCombo" SelectedIndex="0"><ComboBoxItem><TextBlock Text="Serato CV02" Style="{StaticResource ComboBoxText}"/></ComboBoxItem><ComboBoxItem><TextBlock Text="Traktor carrier" Style="{StaticResource ComboBoxText}"/></ComboBoxItem></ComboBox>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Output gain" FontWeight="SemiBold"/><TextBlock Text="Signal level sent to the audio interface" Style="{StaticResource MutedText}"/></StackPanel>
+                      <StackPanel Grid.Column="1">
+                        <TextBlock x:Name="SettingsGainValueText" Text="0.30" HorizontalAlignment="Right" Style="{StaticResource MutedText}"/>
+                        <Slider x:Name="SettingsGainSlider" Minimum="0.05" Maximum="0.60" Value="0.30"
+                                TickFrequency="0.01" ValueChanged="SettingsGainSlider_ValueChanged"/>
+                      </StackPanel>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Base platter speed" FontWeight="SemiBold"/><TextBlock Text="Reference speed used during puck calibration" Style="{StaticResource MutedText}"/></StackPanel>
+                      <ComboBox Grid.Column="1" x:Name="BaseRpmCombo" SelectedIndex="0"><ComboBoxItem Tag="33.3333"><TextBlock Text="33⅓ RPM" Style="{StaticResource ComboBoxText}"/></ComboBoxItem><ComboBoxItem Tag="45"><TextBlock Text="45 RPM" Style="{StaticResource ComboBoxText}"/></ComboBoxItem></ComboBox>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Low battery warning" FontWeight="SemiBold"/><TextBlock Text="Activity log and receiver LED warning" Style="{StaticResource MutedText}"/></StackPanel>
+                      <ComboBox Grid.Column="1" x:Name="BatteryLowCombo" SelectedIndex="2">
+                        <ComboBoxItem Tag="3.30"><TextBlock Text="3.30 V" Style="{StaticResource ComboBoxText}"/></ComboBoxItem><ComboBoxItem Tag="3.40"><TextBlock Text="3.40 V" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                        <ComboBoxItem Tag="3.50"><TextBlock Text="3.50 V" Style="{StaticResource ComboBoxText}"/></ComboBoxItem><ComboBoxItem Tag="3.60"><TextBlock Text="3.60 V" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                        <ComboBoxItem Tag="3.70"><TextBlock Text="3.70 V" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                      </ComboBox>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Pairing window" FontWeight="SemiBold"/><TextBlock Text="How long unassigned pucks may claim a free deck" Style="{StaticResource MutedText}"/></StackPanel>
+                      <ComboBox Grid.Column="1" x:Name="PairWindowCombo" SelectedIndex="2">
+                        <ComboBoxItem Tag="30"><TextBlock Text="30 seconds" Style="{StaticResource ComboBoxText}"/></ComboBoxItem><ComboBoxItem Tag="45"><TextBlock Text="45 seconds" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                        <ComboBoxItem Tag="60"><TextBlock Text="60 seconds" Style="{StaticResource ComboBoxText}"/></ComboBoxItem><ComboBoxItem Tag="90"><TextBlock Text="90 seconds" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                        <ComboBoxItem Tag="120"><TextBlock Text="120 seconds" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
+                      </ComboBox>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Status LED brightness" FontWeight="SemiBold"/><TextBlock Text="Receiver enclosure LED intensity" Style="{StaticResource MutedText}"/></StackPanel>
+                      <StackPanel Grid.Column="1">
+                        <TextBlock x:Name="BrightnessValueText" Text="40 / 255" HorizontalAlignment="Right" Style="{StaticResource MutedText}"/>
+                        <Slider x:Name="BrightnessSlider" Minimum="5" Maximum="255" Value="40"
+                                TickFrequency="5" ValueChanged="BrightnessSlider_ValueChanged"/>
+                      </StackPanel>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Emergency AP fallback" FontWeight="SemiBold"/><TextBlock Text="Allow the receiver button to open the old web portal" Style="{StaticResource MutedText}"/></StackPanel>
+                      <CheckBox Grid.Column="1" x:Name="ApFallbackCheck" Content="Available by button hold" IsChecked="True"/>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Start with Windows" FontWeight="SemiBold"/><TextBlock Text="Launch minimized in the system tray" Style="{StaticResource MutedText}"/></StackPanel>
+                      <CheckBox Grid.Column="1" x:Name="StartupCheck" Content="Launch automatically" Click="StartupCheck_Click"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+
+            <ScrollViewer x:Name="ActivityPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <Grid Margin="0,0,0,12">
+                  <StackPanel>
+                    <TextBlock Text="Activity log" Style="{StaticResource SectionTitle}" Margin="0"/>
+                    <TextBlock Text="Receiver and puck events from this app session" Style="{StaticResource MutedText}"/>
+                  </StackPanel>
+                  <Button Content="Export CSV" HorizontalAlignment="Right" VerticalAlignment="Center"
+                          Click="ExportActivityButton_Click"/>
+                </Grid>
+                <Border Style="{StaticResource PanelBorder}">
+                  <ItemsControl x:Name="ActivityList">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,8">
+                          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                          <StackPanel>
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
+                          </StackPanel>
+                          <TextBlock Grid.Column="1" Text="{Binding Time, StringFormat={}{0:HH:mm:ss}}"
+                                     Style="{StaticResource MutedText}" HorizontalAlignment="Right"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>
