@@ -150,6 +150,7 @@ public partial class MainWindow : Window
                 SelectComboTag(BatteryLowCombo, config.BatteryLow, 0.06);
                 SelectComboTag(PairWindowCombo, config.PairWindow, 1);
                 BrightnessSlider.Value = config.Brightness;
+                LowBatteryLedAlertCheck.IsChecked = config.LowBatteryLedAlert;
                 ApFallbackCheck.IsChecked = config.ApFallback;
             }
             finally
@@ -481,6 +482,7 @@ public partial class MainWindow : Window
             PairWindow = (int)GetSelectedTag(PairWindowCombo, 60),
             BaseRpm = GetSelectedTag(BaseRpmCombo, 33.3333),
             BatteryLow = GetSelectedTag(BatteryLowCombo, 3.50),
+            LowBatteryLedAlert = LowBatteryLedAlertCheck.IsChecked == true,
             ApFallback = ApFallbackCheck.IsChecked == true
         };
         _receiver.SaveConfig(config);
@@ -509,6 +511,7 @@ public partial class MainWindow : Window
                 PairWindow = _config.PairWindow,
                 BaseRpm = selectedRpm,
                 BatteryLow = _config.BatteryLow,
+                LowBatteryLedAlert = _config.LowBatteryLedAlert,
                 ApFallback = _config.ApFallback
             });
             _receiver.Calibrate();

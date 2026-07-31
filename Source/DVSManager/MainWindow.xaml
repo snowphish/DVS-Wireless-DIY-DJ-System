@@ -21,6 +21,7 @@
       </Grid.RowDefinitions>
 
       <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+              Background="Transparent"
               MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
         <Grid Margin="14,0,8,0">
           <Grid.ColumnDefinitions>
@@ -398,6 +399,12 @@
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
                       <StackPanel><TextBlock Text="Timecode format" FontWeight="SemiBold"/><TextBlock Text="Signal generated for your DJ software" Style="{StaticResource MutedText}"/></StackPanel>
                       <ComboBox Grid.Column="1" x:Name="SettingsFormatCombo" SelectedIndex="0"><ComboBoxItem><TextBlock Text="Serato CV02" Style="{StaticResource ComboBoxText}"/></ComboBoxItem><ComboBoxItem><TextBlock Text="Traktor carrier" Style="{StaticResource ComboBoxText}"/></ComboBoxItem></ComboBox>
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
+                    <Grid Margin="0,0,0,15">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                      <StackPanel><TextBlock Text="Low-battery LED alert" FontWeight="SemiBold"/><TextBlock Text="Flash the receiver LED when a puck is below the warning voltage" Style="{StaticResource MutedText}"/></StackPanel>
+                      <CheckBox Grid.Column="1" x:Name="LowBatteryLedAlertCheck" Content="Flash status LED" IsChecked="True"/>
                     </Grid>
                     <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
                     <Grid Margin="0,0,0,15">

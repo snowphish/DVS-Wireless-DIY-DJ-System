@@ -17,7 +17,7 @@ The content after `@DVS ` is JSON.
 
 ```text
 @DVS {"type":"hello","id":1,"protocol":1,"firmware":"1.2.1","device":"DVS Receiver","serial":"A1B2C3D4"}
-@DVS {"type":"config","id":2,"gain":0.300,"gains":0.300,"gaint":0.550,"format":0,"brightness":40,"pairWindow":60,"baseRpm":33.3333,"batteryLow":3.50,"apFallback":true}
+@DVS {"type":"config","id":2,"gain":0.300,"gains":0.300,"gaint":0.550,"format":0,"brightness":40,"pairWindow":60,"baseRpm":33.3333,"batteryLow":3.50,"lowBatteryLedAlert":true,"apFallback":true}
 @DVS {"type":"response","id":3,"ok":true,"message":"settings saved"}
 ```
 
@@ -84,8 +84,8 @@ the receiver echoes it in the corresponding reply.
 @DVS PAIR seconds=60 id=6
 @DVS REPAIR id=7
 @DVS SWAP_DECKS id=8
-@DVS SET_CONFIG gain=0.300 fmt=0 bri=40 pwin=60 base=33.3333 blow=3.50 ap=1 id=9
-@DVS SET_CONFIG gain=0.300 gains=0.300 gaint=0.550 fmt=1 bri=40 pwin=60 base=33.3333 blow=3.50 ap=1 id=10
+@DVS SET_CONFIG gain=0.300 fmt=0 bri=40 pwin=60 base=33.3333 blow=3.50 lbled=1 ap=1 id=9
+@DVS SET_CONFIG gain=0.300 gains=0.300 gaint=0.550 fmt=1 bri=40 pwin=60 base=33.3333 blow=3.50 lbled=0 ap=1 id=10
 ```
 
 Ranges:
@@ -96,10 +96,13 @@ Ranges:
 - `pwin`: 10–300 seconds
 - `base`: 30–50; normalized to 33.3333 or 45
 - `blow`: 3.0–4.0 volts
+- `lbled`: 0 suppress low-battery LED pulses, 1 enable them
 - `ap`: 0 disabled, 1 available by receiver-button hold
 
 Optional `gains` and `gaint` keys explicitly update the stored Serato and
 Traktor gains, respectively, using the same range as `gain`.
+`lbled` is optional for backward compatibility; when omitted, the receiver
+keeps its currently stored low-battery LED-alert setting.
 
 For backward compatibility, bare `gain` updates the format that is active
 before `fmt` is applied. If either explicit `gains` or `gaint` is present,

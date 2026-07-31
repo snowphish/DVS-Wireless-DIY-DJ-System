@@ -11,7 +11,8 @@ leaving the receiver fully standalone.
 - Shows both deck links, battery gauges, RPM, 7-second RSSI/loss averages,
   packet age, pairing state, and calibration messages.
 - Edits timecode format, output gain, base speed, LED brightness, pairing
-  window, low-battery threshold, and emergency AP availability.
+  window, low-battery threshold, low-battery LED flashing, and emergency AP
+  availability.
 - Starts speed-specific calibration, opens pairing, or swaps deck assignments
   over USB.
 - Records link, battery, pairing, and calibration events in the in-app Activity

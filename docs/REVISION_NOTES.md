@@ -1,5 +1,14 @@
 # DIY DVS revision notes — USB Manager release
 
+## Receiver LED setting and Manager window update - 2026-07-31
+
+- Receiver firmware advanced to 1.2.4.
+- Added an NVS-backed option to enable or suppress the repeating low-battery
+  receiver LED pulse alert without disabling battery telemetry or events.
+- Added the LED-alert toggle to DVS Manager Settings and the USB protocol as
+  the backward-compatible optional `lbled` setting.
+- Made the full non-button area of the Manager's top bar draggable.
+
 ## Web flasher and distribution refresh - 2026-07-31
 
 - Restored the GitHub Pages ESP Web Tools flasher for the current three-build

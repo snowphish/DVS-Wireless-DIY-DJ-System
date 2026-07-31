@@ -51,7 +51,7 @@ can be swapped later from DVS Manager.
 - Live battery voltage, RPM, 7-second signal/loss averages, and packet age.
 - USB configuration with automatic COM-port discovery and reconnection.
 - Adjustable output gain, base speed, LED brightness, battery threshold, and
-  pairing window.
+  pairing window, including an option to suppress low-battery LED flashing.
 - Browser-based flashing with no Arduino installation required.
 
 ## Quick start

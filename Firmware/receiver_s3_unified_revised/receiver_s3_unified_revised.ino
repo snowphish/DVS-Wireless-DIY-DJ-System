@@ -140,7 +140,7 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 #define USB_MANAGER_PROTOCOL_VERSION 1
 #define USB_MANAGER_TELEMETRY_MS 250
 #define USB_MANAGER_RX_MAX 320
-#define RECEIVER_FIRMWARE_VERSION "1.2.3"
+#define RECEIVER_FIRMWARE_VERSION "1.2.4"
 
 // ===== Audio =========================================================
 #define SAMPLE_RATE 44100
@@ -317,6 +317,9 @@ volatile float   gBaseRpm   = 33.3333f;
 // deck flashes its low pattern when its last reported battery voltage is
 // below this. (The puck reports voltage over MSG_EVENT.)
 volatile float   gBattLowV  = 3.50f;
+// Keep battery telemetry/events active but allow the operator to suppress the
+// receiver's repeating low-battery LED pulse pattern.
+bool             gLowBatteryLedAlert = true;
 // Keep the AP as an emergency recovery path, but it is never needed while the
 // Windows manager is available over USB. The manager can disable it entirely.
 bool             gApFallback = true;
@@ -464,11 +467,13 @@ static void managerSendConfig(uint32_t id) {
            "{\"type\":\"config\",\"id\":%lu,\"gain\":%.3f,"
            "\"gains\":%.3f,\"gaint\":%.3f,\"format\":%u,"
            "\"brightness\":%u,\"pairWindow\":%lu,\"baseRpm\":%.4f,"
-           "\"batteryLow\":%.2f,\"apFallback\":%s}",
+           "\"batteryLow\":%.2f,\"lowBatteryLedAlert\":%s,\"apFallback\":%s}",
            (unsigned long)id, (float)gGain, gGainSerato, gGainTraktor,
            (unsigned)gFormat,
            (unsigned)gBright, (unsigned long)(gPairWinMs / 1000UL),
-           (float)gBaseRpm, (float)gBattLowV, gApFallback ? "true" : "false");
+           (float)gBaseRpm, (float)gBattLowV,
+           gLowBatteryLedAlert ? "true" : "false",
+           gApFallback ? "true" : "false");
   managerSendJson(json);
 }
 
@@ -606,8 +611,10 @@ static void managerProcessCommand(char *line) {
     float newGainSerato = gGainSerato, newGainTraktor = gGainTraktor;
     long newFormat = gFormat, newBrightness = gBright;
     long newPairWindow = (long)(gPairWinMs / 1000UL), newAp = gApFallback ? 1 : 0;
+    long newLowBatteryLed = gLowBatteryLedAlert ? 1 : 0;
     const char *gainSeratoArg = managerArg(tokens, tokenCount, "gains");
     const char *gainTraktorArg = managerArg(tokens, tokenCount, "gaint");
+    const char *lowBatteryLedArg = managerArg(tokens, tokenCount, "lbled");
     bool hasExplicitGains = gainSeratoArg || gainTraktorArg;
     bool valid =
       managerParseFloat(managerArg(tokens, tokenCount, "gain"), &newGain) &&
@@ -617,6 +624,8 @@ static void managerProcessCommand(char *line) {
       managerParseFloat(managerArg(tokens, tokenCount, "base"), &newBase) &&
       managerParseFloat(managerArg(tokens, tokenCount, "blow"), &newBatteryLow) &&
       managerParseLong(managerArg(tokens, tokenCount, "ap"), &newAp);
+    if (lowBatteryLedArg)
+      valid = managerParseLong(lowBatteryLedArg, &newLowBatteryLed) && valid;
     if (gainSeratoArg)
       valid = managerParseFloat(gainSeratoArg, &newGainSerato) && valid;
     if (gainTraktorArg)
@@ -630,6 +639,7 @@ static void managerProcessCommand(char *line) {
       newPairWindow >= 10 && newPairWindow <= 300 &&
       newBase >= 30.0f && newBase <= 50.0f &&
       newBatteryLow >= 3.0f && newBatteryLow <= 4.0f &&
+      (newLowBatteryLed == 0 || newLowBatteryLed == 1) &&
       (newAp == 0 || newAp == 1);
     if (!valid) {
       managerSendResponse(id, false, "invalid settings");
@@ -650,6 +660,7 @@ static void managerProcessCommand(char *line) {
     gPairWinMs = (uint32_t)newPairWindow * 1000UL;
     gBaseRpm = newBase > 40.0f ? 45.0f : 33.3333f;
     gBattLowV = newBatteryLow;
+    gLowBatteryLedAlert = newLowBatteryLed != 0;
     gApFallback = newAp != 0;
     led.setBrightness(gBright);
     lastLedPacked = 0xFFFFFFFFUL;
@@ -996,7 +1007,9 @@ void serviceLed() {
   // Low = deck online and its last reported voltage is under the threshold.
   bool low1 = deckOnline(0) && deckBattV[0] > 0.1f && deckBattV[0] < gBattLowV;
   bool low2 = deckOnline(1) && deckBattV[1] > 0.1f && deckBattV[1] < gBattLowV;
-  int battN = (low1 && low2) ? 3 : (low2 ? 2 : (low1 ? 1 : 0));
+  int battN = gLowBatteryLedAlert
+                ? ((low1 && low2) ? 3 : (low2 ? 2 : (low1 ? 1 : 0)))
+                : 0;
   uint8_t r, g, b;
   if      (onlineCount >= 2) { r = 0;   g = 255; b = 0; }   // green
   else if (onlineCount == 1) { r = 255; g = 80;  b = 0; }   // orange
@@ -1602,6 +1615,7 @@ void loadSettings() {
   uint32_t pairWin = settingsPrefs.getUInt("pwin", PAIRING_WINDOW_MS);
   float base = settingsPrefs.getFloat("base", 33.3333f);
   float battLow = settingsPrefs.getFloat("blow", 3.50f);
+  bool lowBatteryLedAlert = settingsPrefs.getBool("lbled", true);
   bool apFallback = settingsPrefs.getBool("apfb", true);
 
   // "gain" keeps its original meaning (Serato) so an existing NVS blob loads
@@ -1621,6 +1635,7 @@ void loadSettings() {
                  ? (base > 40.0f ? 45.0f : 33.3333f)
                  : 33.3333f;
   gBattLowV = isfinite(battLow) && battLow >= 3.0f && battLow <= 4.0f ? battLow : 3.50f;
+  gLowBatteryLedAlert = lowBatteryLedAlert;
   gApFallback = apFallback;
 }
 
@@ -1646,6 +1661,7 @@ void saveSettings() {
   settingsPrefs.putUInt("pwin",  gPairWinMs);
   settingsPrefs.putFloat("base", gBaseRpm);
   settingsPrefs.putFloat("blow", gBattLowV);
+  settingsPrefs.putBool("lbled", gLowBatteryLedAlert);
   settingsPrefs.putBool("apfb", gApFallback);
 }
 

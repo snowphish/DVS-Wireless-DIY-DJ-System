@@ -11,7 +11,8 @@ leaving the receiver fully standalone.
 - Shows both deck links, battery gauges, RPM, RSSI, packet loss, packet age,
   pairing state, and calibration messages.
 - Edits timecode format, output gain, base speed, LED brightness, pairing
-  window, low-battery threshold, and emergency AP availability.
+  window, low-battery threshold, low-battery LED flashing, and emergency AP
+  availability.
 - Starts calibration, opens pairing, or clears assignments over USB.
 - Sends Windows notifications for low/critical battery, link loss, link
   recovery, and completed calibration.

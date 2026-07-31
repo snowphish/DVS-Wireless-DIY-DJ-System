@@ -16,6 +16,7 @@ public sealed class ReceiverConfig
     public int PairWindow { get; init; } = 60;
     public double BaseRpm { get; init; } = 33.3333;
     public double BatteryLow { get; init; } = 3.50;
+    public bool LowBatteryLedAlert { get; init; } = true;
     public bool ApFallback { get; init; } = true;
 }
 

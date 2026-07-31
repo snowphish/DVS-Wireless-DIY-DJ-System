@@ -1,6 +1,6 @@
 {
   "name": "Wireless DIY DVS - MPU6050 Transmitter",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "new_install_prompt_erase": true,
   "builds": [
     {
