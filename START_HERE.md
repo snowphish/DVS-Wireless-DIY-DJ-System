@@ -13,14 +13,15 @@ configuration and monitoring no longer require Wi-Fi AP mode.
 | `Firmware/transmitter_bmi160_revised` | ESP32-C3 puck with Bosch BMI160 |
 | `Firmware/transmitter_c3_mpu6050_revised` | ESP32-C3 puck with MPU6050 |
 | `Source/DVSManager` | Complete .NET 8 WPF application source |
-| `docs` | Revision notes and portal preview |
+| `docs` | GitHub Pages web flasher, manifests, compiled images, and revision notes |
 
 Use only the transmitter sketch matching the IMU fitted to that puck.
 
 ## Recommended setup order
 
-1. Flash `receiver_s3_unified_revised.ino`.
-2. Flash the BMI160 or MPU6050 sketch to each matching puck.
+1. Use the web flasher linked from `README.md`, or flash
+   `receiver_s3_unified_revised.ino` in Arduino IDE.
+2. Flash the BMI160/BMI120 or MPU6050 build to each matching puck.
 3. Power the receiver first, then the pucks one at a time.
 4. Connect the receiver's native USB data port to the Windows PC.
 5. Run `Windows_Manager/DVSManager.exe`.

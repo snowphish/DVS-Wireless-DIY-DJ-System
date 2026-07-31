@@ -1,0 +1,13 @@
+{
+  "name": "Wireless DIY DVS - Unified Receiver",
+  "version": "1.2.3",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "firmware/receiver-s3-unified.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

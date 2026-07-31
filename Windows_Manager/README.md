@@ -8,13 +8,14 @@ leaving the receiver fully standalone.
 
 - Finds the ESP32-S3 receiver automatically on any COM port.
 - Reconnects after receiver resets, USB removal, or COM-port number changes.
-- Shows both deck links, battery gauges, RPM, RSSI, packet loss, packet age,
-  pairing state, and calibration messages.
+- Shows both deck links, battery gauges, RPM, 7-second RSSI/loss averages,
+  packet age, pairing state, and calibration messages.
 - Edits timecode format, output gain, base speed, LED brightness, pairing
   window, low-battery threshold, and emergency AP availability.
-- Starts calibration, opens pairing, or clears assignments over USB.
-- Sends Windows notifications for low/critical battery, link loss, link
-  recovery, and completed calibration.
+- Starts speed-specific calibration, opens pairing, or swaps deck assignments
+  over USB.
+- Records link, battery, pairing, and calibration events in the in-app Activity
+  view. System balloon notifications are suppressed to prevent alert sounds.
 - Runs in the system tray and can start minimized with Windows.
 - Exports the current session's activity log as CSV.
 
@@ -23,7 +24,8 @@ or change failover behavior.
 
 ## First use
 
-1. Flash `receiver_s3_unified_revised.ino` from the companion firmware package.
+1. Flash `receiver_s3_unified_revised.ino` from the companion firmware package,
+   or use the repository's browser-based web flasher.
 2. In Arduino IDE, select the ESP32-S3 receiver board and enable **USB CDC On
    Boot** so Windows exposes a COM port.
 3. Connect the receiver to the PC with its native USB data cable.
@@ -71,7 +73,6 @@ dotnet publish DVSManager.csproj -c Release -r win-x64 --self-contained true `
 Bench-test USB detection, both deck directions, calibration, pairing, battery
 warnings, link loss/recovery, Serato, and Traktor before performance use. The
 application builds without warnings and its protocol parser passes the included
-self-test. The receiver firmware passed delimiter, preprocessor, embedded-page,
-and JavaScript validation; the final Arduino compile and USB/radio/audio
-behavior must still be verified with the physical receiver and its known-good
-board settings.
+self-test. The unified receiver and both transmitter variants compile with
+ESP32 Arduino core 3.3.10; USB, radio, and audio behavior must still be verified
+with the physical hardware before performance use.

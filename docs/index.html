@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Wireless DIY DVS Flasher</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      --bg: #07101d;
+      --panel: #111c2d;
+      --raised: #17253a;
+      --line: #2a3d59;
+      --text: #f2f7ff;
+      --muted: #a9b8ce;
+      --cyan: #55d8ff;
+      --green: #58e0aa;
+      --amber: #ffca68;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #12233c 0, var(--bg) 42rem);
+      color: var(--text);
+      font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
+      padding: 36px 16px;
+    }
+    main { width: min(720px, 100%); margin: 0 auto; }
+    h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.5rem); line-height: 1.15; }
+    h2 { margin: 0 0 14px; font-size: 1.12rem; }
+    p { margin: 0; }
+    .lead { color: var(--muted); margin: 10px 0 28px; max-width: 60ch; }
+    .card {
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px;
+      margin: 0 0 18px;
+      box-shadow: 0 18px 50px #0005;
+    }
+    label { display: block; font-weight: 650; margin-bottom: 8px; }
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #48617f;
+      border-radius: 9px;
+      background: #f3f3f3;
+      color: #111827;
+      font: inherit;
+    }
+    .description { color: var(--muted); min-height: 50px; margin: 17px 0; }
+    .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .tag {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid #27644d;
+      background: #12382a;
+      color: var(--green);
+      font-size: .78rem;
+      font-weight: 650;
+    }
+    .tag.blue { border-color: #315e8d; background: #142f4e; color: #83c8ff; }
+    esp-web-install-button { --esp-tools-button-color: #159b70; }
+    esp-web-install-button[install-unsupported] + .unsupported { display: block; }
+    .unsupported {
+      display: none;
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px solid #745323;
+      border-radius: 9px;
+      background: #352711;
+      color: #ffe0a3;
+    }
+    ol { color: var(--muted); margin: 0; padding-left: 21px; }
+    li + li { margin-top: 8px; }
+    strong { color: var(--text); }
+    .note {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-left: 3px solid var(--amber);
+      background: #2c2517;
+      color: #f3deb4;
+    }
+    a { color: var(--cyan); }
+    footer { color: var(--muted); text-align: center; font-size: .84rem; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Wireless DIY DVS Flasher</h1>
+    <p class="lead">Install the current receiver or puck firmware directly over USB. No Arduino IDE is required.</p>
+
+    <section class="card">
+      <label for="target">Choose the board to flash</label>
+      <select id="target">
+        <option value="rx">Unified receiver - ESP32-S3</option>
+        <option value="tx-mpu">Transmitter puck - MPU6050 - ESP32-C3</option>
+        <option value="tx-bmi">Transmitter puck - BMI160/BMI120 - ESP32-C3</option>
+      </select>
+      <p id="description" class="description"></p>
+      <div class="actions">
+        <esp-web-install-button id="installer" manifest="manifest-rx.json">
+          <button slot="activate">Connect and flash</button>
+          <span slot="unsupported"></span>
+        </esp-web-install-button>
+        <span id="tags"></span>
+      </div>
+      <div class="unsupported">
+        Web Serial is unavailable. Use desktop Chrome or Edge and open this page over HTTPS.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Flashing steps</h2>
+      <ol>
+        <li>Connect the board directly with a <strong>USB data cable</strong>. Turn a battery-powered puck off first.</li>
+        <li>Select the exact board and gyro variant above.</li>
+        <li>Click <strong>Connect and flash</strong>, choose its serial port, and approve the installation.</li>
+        <li>If the board is not detected, hold its BOOT button while tapping RESET, then try again.</li>
+        <li>Flash the receiver first, then both pucks. Power the receiver before switching the pucks on for pairing.</li>
+      </ol>
+      <p class="note"><strong>Receiver:</strong> this one build supports both Serato CV02 and Traktor Scratch MK2. Select the format afterward in DVS Manager Settings.</p>
+    </section>
+
+    <footer>
+      <a href="https://github.com/snowphish/DVS-Wireless-DIY-DJ-System">Source, Windows Manager, and documentation</a><br>
+      Not affiliated with or endorsed by Serato or Native Instruments.
+    </footer>
+  </main>
+
+  <script>
+    const choices = {
+      rx: {
+        manifest: "manifest-rx.json",
+        description: "The two-deck ESP32-S3 receiver. It generates either Serato CV02 or Traktor Scratch MK2 timecode and connects to DVS Manager over USB.",
+        tags: ["ESP32-S3", "receiver firmware 1.2.3"]
+      },
+      "tx-mpu": {
+        manifest: "manifest-tx-mpu6050.json",
+        description: "The ESP32-C3 platter puck fitted with an MPU6050 gyro. Flash the identical image to every MPU6050 puck.",
+        tags: ["ESP32-C3", "MPU6050"]
+      },
+      "tx-bmi": {
+        manifest: "manifest-tx-bmi160.json",
+        description: "The ESP32-C3 platter puck fitted with a BMI160 or register-compatible BMI120 gyro. Supports chip IDs 0xD1 and 0xD3.",
+        tags: ["ESP32-C3", "BMI160 / BMI120"]
+      }
+    };
+
+    const select = document.querySelector("#target");
+    const installer = document.querySelector("#installer");
+    const description = document.querySelector("#description");
+    const tags = document.querySelector("#tags");
+
+    function updateChoice() {
+      const choice = choices[select.value];
+      installer.manifest = choice.manifest;
+      installer.setAttribute("manifest", choice.manifest);
+      description.textContent = choice.description;
+      tags.innerHTML = choice.tags.map((tag, index) =>
+        `<span class="tag${index ? " blue" : ""}">${tag}</span>`
+      ).join(" ");
+    }
+
+    select.addEventListener("change", updateChoice);
+    updateChoice();
+  </script>
+</body>
+</html>

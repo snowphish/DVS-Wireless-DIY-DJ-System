@@ -1,0 +1,13 @@
+{
+  "name": "Wireless DIY DVS - MPU6050 Transmitter",
+  "version": "1.2.3",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        { "path": "firmware/transmitter-c3-mpu6050.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

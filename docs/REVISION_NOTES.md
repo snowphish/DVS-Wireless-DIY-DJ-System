@@ -1,5 +1,18 @@
 # DIY DVS revision notes — USB Manager release
 
+## Web flasher and distribution refresh - 2026-07-31
+
+- Restored the GitHub Pages ESP Web Tools flasher for the current three-build
+  firmware layout: unified receiver, MPU6050 puck, and BMI160/BMI120 puck.
+- Recompiled all three merged flash images with Arduino CLI 1.5.1, ESP32
+  Arduino core 3.3.10, and Adafruit NeoPixel 1.15.5.
+- Receiver build uses ESP32-S3 hardware CDC with USB CDC on boot; transmitter
+  builds use ESP32-C3 with USB CDC on boot.
+- Espressif image inspection confirmed valid chip IDs, checksums, and validation
+  hashes for all three application images.
+- Added a complete repository landing-page README and removed the obsolete
+  original Manager executable from the current release tree.
+
 ## Firmware audit fixes - 2026-07-23
 
 - Receiver firmware version advanced to 1.2.1.
@@ -77,12 +90,9 @@
 - Receiver/transmitter delimiter and preprocessor balance: successful.
 - Embedded portal JavaScript syntax: successful.
 - Exact portal HTML extraction: successful.
-
-The final receiver sketch could not be compiled inside this sandbox because
-Arduino CLI was denied while resolving its installed ESP32 package directory.
-The ESP32 3.3.11 toolchain and NeoPixel library downloaded successfully before
-that sandbox-specific ACL failure. Compile the receiver in Arduino IDE with the
-physical board's known-good settings, then complete the bench tests below.
+- Unified receiver Arduino compile: successful.
+- MPU6050 and BMI160/BMI120 transmitter Arduino compiles: successful.
+- Web-flasher manifests, asset paths, JavaScript, and image headers: successful.
 
 ## Required bench test
 
