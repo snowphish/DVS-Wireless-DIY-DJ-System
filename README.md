@@ -138,21 +138,15 @@ puck connection, wait for live RPM to return, then switch back to Relative.
 | [`Windows_Manager`](Windows_Manager) | Ready-to-run Windows Manager and USB protocol |
 | [`Source/DVSManager`](Source/DVSManager) | Complete .NET 8 WPF source |
 | [`docs`](docs) | GitHub Pages web flasher, manifests, and merged binaries |
-| [`old`](old) | Preserved legacy firmware for original/non-custom-PCB builds |
+| [`Old`](Old) | Printable enclosure files, Fusion 360 sources, and original build photos |
 | [`licenses`](licenses) | Included third-party license notices |
 
-## Legacy firmware for non-custom-PCB builds
+## CAD cases and original build photos
 
-The restored [`old/`](old) directory preserves the earlier standalone receiver
-and transmitter sketches for builders using the original wiring or their own
-non-custom-PCB hardware. These builds use the older manual configuration
-workflow, including transmitter deck IDs and receiver MAC settings, and do not
-include the current unified receiver or Windows Manager protocol.
-
-Read the hardware, pin, pairing, and flashing notes inside each legacy
-subfolder before using them. They are retained for compatibility and reference;
-the web flasher continues to install only the current firmware under
-[`Firmware/`](Firmware).
+[`Old/`](Old) preserves the original non-custom-PCB enclosure
+designs and build photos. It includes print-ready `.3mf` receiver, transmitter,
+and carry-box parts plus the editable Fusion 360 `.f3d` sources. Read the
+folder's assembly notes before printing or modifying the designs.
 
 ## Firmware build settings
 
