@@ -2,11 +2,12 @@
 
 ## Lineage and AI authorship disclosure
 
-This project grew from
+This is my own spin on the original project from
 [FelipeAlme/DVS-Wireless-DIY-DJ-System](https://github.com/FelipeAlme/DVS-Wireless-DIY-DJ-System),
-which established the original transmitter and receiver system. This fork has
-since been substantially reworked with unified receiver control, calibration,
-automatic pairing, failover, telemetry, the Windows Manager, and web flashing.
+which established the original transmitter and receiver system. This fork
+includes some added functionality like unified receiver control, spin
+calibration, automatic pairing, failover, telemetry, the Windows Manager, and
+web flashing.
 
 **All programming in this fork has been done by AI.** The project owner has
 provided the requirements, hardware design decisions, physical builds, testing,
