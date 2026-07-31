@@ -122,7 +122,7 @@
         <li>If the board is not detected, hold its BOOT button while tapping RESET, then try again.</li>
         <li>Flash the receiver first, then both pucks. Power the receiver before switching the pucks on for pairing.</li>
       </ol>
-      <p class="note"><strong>Receiver:</strong> this one build supports both Serato CV02 and Traktor Scratch MK2. Select the format afterward in DVS Manager Settings.</p>
+      <p class="note"><strong>Traktor limitation:</strong> Traktor mode is a carrier-only signal for speed and direction in Relative mode. It is not currently detected as genuine MK2 timecode. Disable Traktor's timecode error messages/warnings before use. Serato mode outputs full CV02 timecode.</p>
     </section>
 
     <footer>
@@ -135,8 +135,8 @@
     const choices = {
       rx: {
         manifest: "manifest-rx.json",
-        description: "The two-deck ESP32-S3 receiver. It generates either Serato CV02 or Traktor Scratch MK2 timecode and connects to DVS Manager over USB.",
-        tags: ["ESP32-S3", "receiver firmware 1.2.3"]
+        description: "The two-deck ESP32-S3 receiver. It generates full Serato CV02 timecode or a carrier-only Traktor signal, and connects to DVS Manager over USB.",
+        tags: ["ESP32-S3", "Serato CV02 / Traktor carrier"]
       },
       "tx-mpu": {
         manifest: "manifest-tx-mpu6050.json",

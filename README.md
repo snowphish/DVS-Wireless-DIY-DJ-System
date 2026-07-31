@@ -16,7 +16,8 @@ the firmware, desktop application, web flasher, build tooling, and documentation
 Wireless DIY DVS turns two ordinary turntables into a two-deck digital vinyl
 control system without needles or timecode records. Battery-powered ESP32-C3
 gyro pucks measure platter movement over ESP-NOW, while one ESP32-S3 receiver
-generates line-level Serato CV02 or Traktor Scratch MK2 timecode for both decks.
+generates line-level Serato CV02 timecode or a Traktor-compatible quadrature
+carrier signal for both decks.
 
 > **[Flash the receiver and pucks in Chrome or Edge](https://snowphish.github.io/DVS-Wireless-DIY-DJ-System/)**
 
@@ -39,7 +40,8 @@ can be swapped later from DVS Manager.
 
 ## Highlights
 
-- Serato CV02 and Traktor Scratch MK2 output from one unified receiver build.
+- Full Serato CV02 output and carrier-only Traktor output from one unified
+  receiver build.
 - Two simultaneous decks over low-latency ESP-NOW on channel 11.
 - MPU6050 and BMI160/BMI120 transmitter variants.
 - Automatic MAC-based pairing and reconnect to the puck's previous deck.
@@ -63,10 +65,25 @@ can be swapped later from DVS Manager.
    first new puck becomes deck 1 and the second becomes deck 2.
 5. Connect the receiver's native USB data port to Windows and run
    [`Windows_Manager/DVSManager.exe`](Windows_Manager/DVSManager.exe).
-6. Select Serato or Traktor in **Settings**, choose the platter speed in
-   **Quick controls**, and calibrate with the platters settled at 0% pitch.
+6. Select Serato CV02 or Traktor carrier in **Settings**, choose the platter
+   speed in **Quick controls**, and calibrate with the platters settled at 0%
+   pitch.
 7. Connect both PCM5102A outputs to the audio interface's **line inputs**, set
-   the DJ software to the matching vinyl type, and use **Relative mode**.
+   up the corresponding input mode in the DJ software, and use **Relative
+   mode**.
+
+### Important Traktor limitation
+
+The current Traktor mode outputs only the bare quadrature carrier used for
+speed and direction tracking. It does **not** generate the complete Traktor
+Scratch MK2 position/authenticity bitstream, so Traktor will not detect it as
+genuine timecode for now.
+
+Use **Relative mode** and disable Traktor's timecode error messages/warnings.
+With those errors disabled, Traktor can follow platter speed and direction from
+the carrier, but genuine-timecode detection and absolute position are not
+available. Serato mode is unaffected and continues to output full CV02
+timecode.
 
 The Windows executable is not code-signed, so SmartScreen may show an
 unrecognized-app warning. Verify it against [`SHA256SUMS.txt`](SHA256SUMS.txt)
