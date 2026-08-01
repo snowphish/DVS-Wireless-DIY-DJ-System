@@ -1,6 +1,6 @@
 {
   "name": "Wireless DIY DVS - BMI160/BMI120 Transmitter",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "new_install_prompt_erase": true,
   "builds": [
     {

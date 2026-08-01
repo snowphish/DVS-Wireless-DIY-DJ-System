@@ -80,7 +80,8 @@ public sealed class SerialReceiverService : IDisposable
             $"bri={config.Brightness} pwin={config.PairWindow} " +
             $"base={config.BaseRpm:0.0000} blow={config.BatteryLow:0.00} " +
             $"lbled={(config.LowBatteryLedAlert ? 1 : 0)} " +
-            $"ap={(config.ApFallback ? 1 : 0)}");
+            $"ap={(config.ApFallback ? 1 : 0)} " +
+            $"btn1={config.Button1Action} btn2={config.Button2Action}");
         return QueueCommand(command);
     }
 
@@ -350,7 +351,9 @@ public sealed class SerialReceiverService : IDisposable
         BaseRpm = GetDouble(root, "baseRpm", 33.3333),
         BatteryLow = GetDouble(root, "batteryLow", 3.50),
         LowBatteryLedAlert = GetBool(root, "lowBatteryLedAlert", true),
-        ApFallback = GetBool(root, "apFallback", true)
+        ApFallback = GetBool(root, "apFallback", true),
+        Button1Action = GetInt(root, "button1Action", 2),
+        Button2Action = GetInt(root, "button2Action", 0)
     };
 
     private static ReceiverStatus ParseStatus(JsonElement root)
@@ -444,7 +447,8 @@ public sealed class SerialReceiverService : IDisposable
         const string configLine =
             "@DVS {\"type\":\"config\",\"id\":2,\"gain\":0.3,\"format\":0," +
             "\"brightness\":40,\"pairWindow\":60,\"baseRpm\":33.3333," +
-            "\"batteryLow\":3.5,\"lowBatteryLedAlert\":false,\"apFallback\":true}";
+            "\"batteryLow\":3.5,\"lowBatteryLedAlert\":false,\"apFallback\":true," +
+            "\"button1Action\":1,\"button2Action\":3}";
         if (!TryOpenMachineJson(configLine, out JsonDocument? configDocument) || configDocument is null)
             throw new InvalidDataException("CONFIG JSON self-test failed.");
         using (configDocument)
@@ -453,7 +457,9 @@ public sealed class SerialReceiverService : IDisposable
             if (Math.Abs(config.Gain - 0.30) > 0.001 ||
                 config.Brightness != 40 ||
                 config.LowBatteryLedAlert ||
-                !config.ApFallback)
+                !config.ApFallback ||
+                config.Button1Action != 1 ||
+                config.Button2Action != 3)
                 throw new InvalidDataException("CONFIG parser self-test failed.");
         }
 

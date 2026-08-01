@@ -1,5 +1,14 @@
 # DIY DVS revision notes — USB Manager release
 
+## Receiver button mapping - 2026-08-01
+
+- Receiver firmware advanced to 1.2.5.
+- White button 1 and black button 2 can be mapped independently in Manager
+  Settings to toggle the AP, swap decks, open pairing, or start spin
+  calibration at the selected base speed.
+- Button mappings persist in receiver NVS and require a 1.5-second hold.
+- Either physical button can also be disabled so holding it has no effect.
+
 ## Receiver LED setting and Manager window update - 2026-07-31
 
 - Receiver firmware advanced to 1.2.4.

@@ -27,6 +27,8 @@ public partial class MainWindow : Window
 {
     private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string StartupRegistryName = "DVS Manager";
+    private const string AppRegistryPath = @"Software\DIY DVS Manager";
+    private const string ExitToTrayRegistryName = "ExitToTray";
 
     private readonly SerialReceiverService _receiver = new();
     private readonly ObservableCollection<ActivityEntry> _activity = new();
@@ -38,6 +40,7 @@ public partial class MainWindow : Window
         { new(TimeSpan.FromSeconds(7)), new(TimeSpan.FromSeconds(7)) };
     private ReceiverConfig _config = new();
     private bool _reallyExit;
+    private bool _exitToTray;
     private bool _shownTrayHint;
     private bool _updatingSettings;
     private CancellationTokenSource? _toastCancellation;
@@ -49,6 +52,9 @@ public partial class MainWindow : Window
         ActivityList.ItemsSource = _activity;
         RecentActivityList.ItemsSource = _recentActivity;
         StartupCheck.IsChecked = IsStartupEnabled();
+        _exitToTray = IsExitToTrayEnabled();
+        ExitToTrayCheck.IsChecked = _exitToTray;
+        CloseWindowButton.ToolTip = _exitToTray ? "Close to tray" : "Close";
 
         _trayIcon = new Forms.NotifyIcon
         {
@@ -152,6 +158,8 @@ public partial class MainWindow : Window
                 BrightnessSlider.Value = config.Brightness;
                 LowBatteryLedAlertCheck.IsChecked = config.LowBatteryLedAlert;
                 ApFallbackCheck.IsChecked = config.ApFallback;
+                Button1ActionCombo.SelectedIndex = Math.Clamp(config.Button1Action, 0, 4);
+                Button2ActionCombo.SelectedIndex = Math.Clamp(config.Button2Action, 0, 4);
             }
             finally
             {
@@ -174,6 +182,7 @@ public partial class MainWindow : Window
                 "battery_recovered" => $"{deck} battery recovered",
                 "calibration_complete" => $"{deck} calibration completed",
                 "ap_disabled" => "Emergency AP is disabled",
+                "receiver_button" => "Receiver button action",
                 _ => managerEvent.Name.Replace('_', ' ')
             };
             AddActivity(title, managerEvent.Detail);
@@ -483,7 +492,9 @@ public partial class MainWindow : Window
             BaseRpm = GetSelectedTag(BaseRpmCombo, 33.3333),
             BatteryLow = GetSelectedTag(BatteryLowCombo, 3.50),
             LowBatteryLedAlert = LowBatteryLedAlertCheck.IsChecked == true,
-            ApFallback = ApFallbackCheck.IsChecked == true
+            ApFallback = ApFallbackCheck.IsChecked == true,
+            Button1Action = Button1ActionCombo.SelectedIndex,
+            Button2Action = Button2ActionCombo.SelectedIndex
         };
         _receiver.SaveConfig(config);
     }
@@ -512,7 +523,9 @@ public partial class MainWindow : Window
                 BaseRpm = selectedRpm,
                 BatteryLow = _config.BatteryLow,
                 LowBatteryLedAlert = _config.LowBatteryLedAlert,
-                ApFallback = _config.ApFallback
+                ApFallback = _config.ApFallback,
+                Button1Action = _config.Button1Action,
+                Button2Action = _config.Button2Action
             });
             _receiver.Calibrate();
         }
@@ -625,6 +638,39 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ExitToTrayCheck_Click(object sender, RoutedEventArgs e)
+    {
+        _exitToTray = ExitToTrayCheck.IsChecked == true;
+        try
+        {
+            using RegistryKey key = Registry.CurrentUser.CreateSubKey(AppRegistryPath, true);
+            key.SetValue(ExitToTrayRegistryName, _exitToTray ? 1 : 0, RegistryValueKind.DWord);
+            CloseWindowButton.ToolTip = _exitToTray ? "Close to tray" : "Close";
+            ShowToast(_exitToTray
+                ? "The X button will now close DVS Manager to the tray."
+                : "The X button will now exit DVS Manager.");
+        }
+        catch (Exception ex)
+        {
+            _exitToTray = IsExitToTrayEnabled();
+            ExitToTrayCheck.IsChecked = _exitToTray;
+            ShowToast($"Could not save exit-to-tray setting: {ex.Message}", true);
+        }
+    }
+
+    private static bool IsExitToTrayEnabled()
+    {
+        try
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(AppRegistryPath, false);
+            return key?.GetValue(ExitToTrayRegistryName) is int value && value != 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private void ExportActivityButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new SaveFileDialog
@@ -690,18 +736,30 @@ public partial class MainWindow : Window
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
         if (_reallyExit) return;
-        e.Cancel = true;
-        HideToTray();
+        if (_exitToTray)
+        {
+            e.Cancel = true;
+            HideToTray();
+            return;
+        }
+        PrepareExit();
+        System.Windows.Application.Current.Shutdown();
     }
 
     private void ExitApplication()
     {
+        PrepareExit();
+        Close();
+        System.Windows.Application.Current.Shutdown();
+    }
+
+    private void PrepareExit()
+    {
+        if (_reallyExit) return;
         _reallyExit = true;
         _toastCancellation?.Cancel();
         _receiver.Dispose();
         _trayIcon.Visible = false;
         _trayIcon.Dispose();
-        Close();
-        System.Windows.Application.Current.Shutdown();
     }
 }

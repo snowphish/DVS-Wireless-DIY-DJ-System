@@ -18,6 +18,8 @@ public sealed class ReceiverConfig
     public double BatteryLow { get; init; } = 3.50;
     public bool LowBatteryLedAlert { get; init; } = true;
     public bool ApFallback { get; init; } = true;
+    public int Button1Action { get; init; } = 2;
+    public int Button2Action { get; init; } = 0;
 }
 
 public sealed class DeckTelemetry

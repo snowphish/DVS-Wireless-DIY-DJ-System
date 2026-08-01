@@ -79,8 +79,8 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 // time, window or not. Table is RAM-only: rebooting the receiver, or a long
 // press on the re-pair button, clears it and reopens the window.
 #define PAIRING_WINDOW_MS 60000UL
-#define REPAIR_BTN_PIN 4           // momentary button to GND (INPUT_PULLUP)
-#define REPAIR_HOLD_MS 1500        // long-press duration to clear + re-open
+#define REPAIR_BTN_PIN 4           // white button 1, momentary to GND
+#define REPAIR_HOLD_MS 1500        // hold duration for either mapped action
 
 // ===== Dicer (unit 3) -> USB-MIDI [TEST] ==============================
 // The dicer sends its full button state as MSG_BUTTONS; we diff states
@@ -140,7 +140,7 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 #define USB_MANAGER_PROTOCOL_VERSION 1
 #define USB_MANAGER_TELEMETRY_MS 250
 #define USB_MANAGER_RX_MAX 320
-#define RECEIVER_FIRMWARE_VERSION "1.2.4"
+#define RECEIVER_FIRMWARE_VERSION "1.2.5"
 
 // ===== Audio =========================================================
 #define SAMPLE_RATE 44100
@@ -217,13 +217,21 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 // ===== Settings portal =================================================
 #define SETTINGS_BTN_PIN 5         // second PCB button to GND (INPUT_PULLUP).
                                    // ADJUST to match your board wiring.
-#define SETTINGS_HOLD_MS 1500      // long-press to toggle the portal
 #define SETTINGS_AP_SSID "DVS-Settings"
 #define SETTINGS_AP_PASS "dvssetup"          // WPA2 needs >= 8 chars
 #define SETTINGS_IDLE_TIMEOUT_MS 300000UL    // auto-exit after 5 min unused
 
 #define FORMAT_SERATO  0
 #define FORMAT_TRAKTOR 1
+
+// Persisted physical-button actions. Keep these numeric values stable because
+// they are stored in NVS and exchanged with DVS Manager.
+#define BUTTON_ACTION_AP        0
+#define BUTTON_ACTION_SWAP      1
+#define BUTTON_ACTION_PAIR      2
+#define BUTTON_ACTION_SPINCAL   3
+#define BUTTON_ACTION_DISABLED  4
+#define BUTTON_ACTION_MAX       BUTTON_ACTION_DISABLED
 
 typedef struct __attribute__((packed)) {
   uint8_t  msgType;
@@ -323,6 +331,8 @@ bool             gLowBatteryLedAlert = true;
 // Keep the AP as an emergency recovery path, but it is never needed while the
 // Windows manager is available over USB. The manager can disable it entirely.
 bool             gApFallback = true;
+uint8_t          gButton1Action = BUTTON_ACTION_PAIR; // white: open pairing
+uint8_t          gButton2Action = BUTTON_ACTION_AP;   // black: settings AP
 
 bool      settingsActive    = false;
 uint32_t  settingsLastHitMs = 0;
@@ -462,18 +472,20 @@ static void managerSendHello(uint32_t id) {
 }
 
 static void managerSendConfig(uint32_t id) {
-  char json[320];
+  char json[360];
   snprintf(json, sizeof(json),
            "{\"type\":\"config\",\"id\":%lu,\"gain\":%.3f,"
            "\"gains\":%.3f,\"gaint\":%.3f,\"format\":%u,"
            "\"brightness\":%u,\"pairWindow\":%lu,\"baseRpm\":%.4f,"
-           "\"batteryLow\":%.2f,\"lowBatteryLedAlert\":%s,\"apFallback\":%s}",
+           "\"batteryLow\":%.2f,\"lowBatteryLedAlert\":%s,\"apFallback\":%s,"
+           "\"button1Action\":%u,\"button2Action\":%u}",
            (unsigned long)id, (float)gGain, gGainSerato, gGainTraktor,
            (unsigned)gFormat,
            (unsigned)gBright, (unsigned long)(gPairWinMs / 1000UL),
            (float)gBaseRpm, (float)gBattLowV,
            gLowBatteryLedAlert ? "true" : "false",
-           gApFallback ? "true" : "false");
+           gApFallback ? "true" : "false",
+           (unsigned)gButton1Action, (unsigned)gButton2Action);
   managerSendJson(json);
 }
 
@@ -612,9 +624,12 @@ static void managerProcessCommand(char *line) {
     long newFormat = gFormat, newBrightness = gBright;
     long newPairWindow = (long)(gPairWinMs / 1000UL), newAp = gApFallback ? 1 : 0;
     long newLowBatteryLed = gLowBatteryLedAlert ? 1 : 0;
+    long newButton1 = gButton1Action, newButton2 = gButton2Action;
     const char *gainSeratoArg = managerArg(tokens, tokenCount, "gains");
     const char *gainTraktorArg = managerArg(tokens, tokenCount, "gaint");
     const char *lowBatteryLedArg = managerArg(tokens, tokenCount, "lbled");
+    const char *button1Arg = managerArg(tokens, tokenCount, "btn1");
+    const char *button2Arg = managerArg(tokens, tokenCount, "btn2");
     bool hasExplicitGains = gainSeratoArg || gainTraktorArg;
     bool valid =
       managerParseFloat(managerArg(tokens, tokenCount, "gain"), &newGain) &&
@@ -626,6 +641,10 @@ static void managerProcessCommand(char *line) {
       managerParseLong(managerArg(tokens, tokenCount, "ap"), &newAp);
     if (lowBatteryLedArg)
       valid = managerParseLong(lowBatteryLedArg, &newLowBatteryLed) && valid;
+    if (button1Arg)
+      valid = managerParseLong(button1Arg, &newButton1) && valid;
+    if (button2Arg)
+      valid = managerParseLong(button2Arg, &newButton2) && valid;
     if (gainSeratoArg)
       valid = managerParseFloat(gainSeratoArg, &newGainSerato) && valid;
     if (gainTraktorArg)
@@ -640,6 +659,8 @@ static void managerProcessCommand(char *line) {
       newBase >= 30.0f && newBase <= 50.0f &&
       newBatteryLow >= 3.0f && newBatteryLow <= 4.0f &&
       (newLowBatteryLed == 0 || newLowBatteryLed == 1) &&
+      newButton1 >= 0 && newButton1 <= BUTTON_ACTION_MAX &&
+      newButton2 >= 0 && newButton2 <= BUTTON_ACTION_MAX &&
       (newAp == 0 || newAp == 1);
     if (!valid) {
       managerSendResponse(id, false, "invalid settings");
@@ -662,6 +683,8 @@ static void managerProcessCommand(char *line) {
     gBattLowV = newBatteryLow;
     gLowBatteryLedAlert = newLowBatteryLed != 0;
     gApFallback = newAp != 0;
+    gButton1Action = (uint8_t)newButton1;
+    gButton2Action = (uint8_t)newButton2;
     led.setBrightness(gBright);
     lastLedPacked = 0xFFFFFFFFUL;
     saveSettings();
@@ -1586,17 +1609,6 @@ bool swapDeckAssignments() {
   return true;
 }
 
-void serviceRepairButton() {
-  static uint32_t pressStart = 0;
-  static bool fired = false;
-  if (digitalRead(REPAIR_BTN_PIN) != LOW) { pressStart = 0; fired = false; return; }
-  uint32_t now = millis();
-  if (pressStart == 0) { pressStart = now; return; }
-  if (fired || now - pressStart < REPAIR_HOLD_MS) return;
-  fired = true;
-  clearPairingsAndReopen();
-}
-
 int onlineDeckCount() {
   int n = 0; uint32_t now = millis();
   portENTER_CRITICAL(&stateMux);
@@ -1617,6 +1629,8 @@ void loadSettings() {
   float battLow = settingsPrefs.getFloat("blow", 3.50f);
   bool lowBatteryLedAlert = settingsPrefs.getBool("lbled", true);
   bool apFallback = settingsPrefs.getBool("apfb", true);
+  uint8_t button1Action = settingsPrefs.getUChar("btn1", BUTTON_ACTION_PAIR);
+  uint8_t button2Action = settingsPrefs.getUChar("btn2", BUTTON_ACTION_AP);
 
   // "gain" keeps its original meaning (Serato) so an existing NVS blob loads
   // unchanged; "gaint" is new and defaults to the same value, so the first
@@ -1637,6 +1651,8 @@ void loadSettings() {
   gBattLowV = isfinite(battLow) && battLow >= 3.0f && battLow <= 4.0f ? battLow : 3.50f;
   gLowBatteryLedAlert = lowBatteryLedAlert;
   gApFallback = apFallback;
+  gButton1Action = button1Action <= BUTTON_ACTION_MAX ? button1Action : BUTTON_ACTION_PAIR;
+  gButton2Action = button2Action <= BUTTON_ACTION_MAX ? button2Action : BUTTON_ACTION_AP;
 }
 
 // Commit a gain/format change. `newGain` belongs to the format that is active
@@ -1663,6 +1679,8 @@ void saveSettings() {
   settingsPrefs.putFloat("blow", gBattLowV);
   settingsPrefs.putBool("lbled", gLowBatteryLedAlert);
   settingsPrefs.putBool("apfb", gApFallback);
+  settingsPrefs.putUChar("btn1", gButton1Action);
+  settingsPrefs.putUChar("btn2", gButton2Action);
 }
 
 // Single self-contained page: no external assets, so it works inside captive
@@ -1934,24 +1952,67 @@ void stopSettingsMode() {
   debugBootLog("SETTINGS: portal closed");
 }
 
-void serviceSettingsButton() {
-  static uint32_t pressStart = 0;
-  static bool fired = false;
-  if (digitalRead(SETTINGS_BTN_PIN) != LOW) { pressStart = 0; fired = false; return; }
+void executeReceiverButtonAction(uint8_t action, uint8_t button) {
+  char detail[96];
+  switch (action) {
+    case BUTTON_ACTION_DISABLED:
+      return;
+    case BUTTON_ACTION_AP:
+      if (settingsActive) {
+        stopSettingsMode();
+        snprintf(detail, sizeof(detail), "button %u closed settings AP", button);
+      } else if (gApFallback) {
+        startSettingsMode();
+        snprintf(detail, sizeof(detail), "button %u opened settings AP", button);
+      } else {
+        snprintf(detail, sizeof(detail), "button %u AP action blocked; enable emergency AP", button);
+        debugBootLog(detail);
+#if USB_MANAGER_ENABLE
+        managerSendEvent("ap_disabled", 0, detail);
+#endif
+        return;
+      }
+      break;
+    case BUTTON_ACTION_SWAP:
+      snprintf(detail, sizeof(detail), swapDeckAssignments()
+        ? "button %u swapped deck assignments"
+        : "button %u swap requires two paired pucks", button);
+      break;
+    case BUTTON_ACTION_PAIR:
+      pairingWindowEndMs = millis() + gPairWinMs;
+      snprintf(detail, sizeof(detail), "button %u opened pairing window", button);
+      break;
+    case BUTTON_ACTION_SPINCAL: {
+      uint8_t armed = managerArmCalibration();
+      snprintf(detail, sizeof(detail), armed
+        ? "button %u armed spin calibration at %.2f RPM"
+        : "button %u calibration requires a paired puck", button, (double)gBaseRpm);
+      break;
+    }
+    default:
+      return;
+  }
+  debugBootLog(detail);
+#if USB_MANAGER_ENABLE
+  managerSendEvent("receiver_button", 0, detail);
+#endif
+}
+
+void serviceMappedButton(uint8_t pin, uint8_t action, uint8_t button,
+                         uint32_t &pressStart, bool &fired) {
+  if (digitalRead(pin) != LOW) { pressStart = 0; fired = false; return; }
   uint32_t now = millis();
   if (pressStart == 0) { pressStart = now; return; }
-  if (fired || now - pressStart < SETTINGS_HOLD_MS) return;
+  if (fired || now - pressStart < REPAIR_HOLD_MS) return;
   fired = true;
-  if (settingsActive) {
-    stopSettingsMode();
-  } else if (gApFallback) {
-    startSettingsMode();
-  } else {
-    debugBootLog("SETTINGS: emergency AP fallback is disabled in DVS Manager");
-#if USB_MANAGER_ENABLE
-    managerSendEvent("ap_disabled", 0, "enable emergency AP fallback in DVS Manager");
-#endif
-  }
+  executeReceiverButtonAction(action, button);
+}
+
+void serviceReceiverButtons() {
+  static uint32_t button1Start = 0, button2Start = 0;
+  static bool button1Fired = false, button2Fired = false;
+  serviceMappedButton(REPAIR_BTN_PIN, gButton1Action, 1, button1Start, button1Fired);
+  serviceMappedButton(SETTINGS_BTN_PIN, gButton2Action, 2, button2Start, button2Fired);
 }
 
 // ===== setup / loop ==================================================
@@ -2008,8 +2069,7 @@ void setup() {
 
 void loop() {
   serviceManagerSerial();
-  serviceRepairButton();
-  serviceSettingsButton();
+  serviceReceiverButtons();
   serviceCommandRepeats();
   if (settingsActive) {
     settingsDns.processNextRequest();

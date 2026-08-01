@@ -11,13 +11,14 @@ leaving the receiver fully standalone.
 - Shows both deck links, battery gauges, RPM, 7-second RSSI/loss averages,
   packet age, pairing state, and calibration messages.
 - Edits timecode format, output gain, base speed, LED brightness, pairing
-  window, low-battery threshold, low-battery LED flashing, and emergency AP
-  availability.
+  window, low-battery threshold, low-battery LED flashing, emergency AP
+  availability, and both physical receiver-button actions.
 - Starts speed-specific calibration, opens pairing, or swaps deck assignments
   over USB.
 - Records link, battery, pairing, and calibration events in the in-app Activity
   view. System balloon notifications are suppressed to prevent alert sounds.
-- Runs in the system tray and can start minimized with Windows.
+- Can run in the system tray and start minimized with Windows. The X button
+  exits by default; optional **Exit to tray** behavior is available in Settings.
 - Exports the current session's activity log as CSV.
 
 Settings remain in the receiver's NVS. Closing the app does not stop timecode
@@ -39,8 +40,9 @@ if the file came from this package and its SHA-256 matches `SHA256SUMS.txt`.
 
 ## Normal operation
 
-Closing the window sends DVS Manager to the system tray. Use the tray icon to
-open it again or exit completely.
+Closing the window exits DVS Manager by default. Enable **Exit to tray** in
+Settings to keep monitoring after the X button is clicked; use the tray menu
+to exit completely.
 
 If a puck link is lost, the receiver keeps its intentional hold-last-stable-RPM
 behavior. DVS Manager displays **HOLDING** and notifies you to:
