@@ -455,12 +455,6 @@
                     <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
                     <Grid Margin="0,0,0,15">
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
-                      <StackPanel><TextBlock Text="Emergency AP fallback" FontWeight="SemiBold"/><TextBlock Text="Allow the receiver button to open the old web portal" Style="{StaticResource MutedText}"/></StackPanel>
-                      <CheckBox Grid.Column="1" x:Name="ApFallbackCheck" Content="Available by button hold" IsChecked="True"/>
-                    </Grid>
-                    <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
-                    <Grid Margin="0,0,0,15">
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
                       <StackPanel><TextBlock Text="Button 1 — white" FontWeight="SemiBold"/><TextBlock Text="Action after holding the receiver button for 1.5 seconds" Style="{StaticResource MutedText}"/></StackPanel>
                       <ComboBox Grid.Column="1" x:Name="Button1ActionCombo" SelectedIndex="2">
                         <ComboBoxItem><TextBlock Text="Enable / disable AP" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
@@ -473,7 +467,7 @@
                     <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,15"/>
                     <Grid Margin="0,0,0,15">
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
-                      <StackPanel><TextBlock Text="Button 2 — black" FontWeight="SemiBold"/><TextBlock Text="Spin calibration uses the selected base platter speed" Style="{StaticResource MutedText}"/></StackPanel>
+                      <StackPanel><TextBlock Text="Button 2 — black" FontWeight="SemiBold"/><TextBlock Text="Action after holding the receiver button for 1.5 seconds" Style="{StaticResource MutedText}"/></StackPanel>
                       <ComboBox Grid.Column="1" x:Name="Button2ActionCombo" SelectedIndex="0">
                         <ComboBoxItem><TextBlock Text="Enable / disable AP" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>
                         <ComboBoxItem><TextBlock Text="Swap decks" Style="{StaticResource ComboBoxText}"/></ComboBoxItem>

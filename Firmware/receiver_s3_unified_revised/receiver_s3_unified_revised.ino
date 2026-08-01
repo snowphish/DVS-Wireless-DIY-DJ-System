@@ -140,7 +140,7 @@ Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 #define USB_MANAGER_PROTOCOL_VERSION 1
 #define USB_MANAGER_TELEMETRY_MS 250
 #define USB_MANAGER_RX_MAX 320
-#define RECEIVER_FIRMWARE_VERSION "1.2.5"
+#define RECEIVER_FIRMWARE_VERSION "1.2.6"
 
 // ===== Audio =========================================================
 #define SAMPLE_RATE 44100
@@ -328,8 +328,8 @@ volatile float   gBattLowV  = 3.50f;
 // Keep battery telemetry/events active but allow the operator to suppress the
 // receiver's repeating low-battery LED pulse pattern.
 bool             gLowBatteryLedAlert = true;
-// Keep the AP as an emergency recovery path, but it is never needed while the
-// Windows manager is available over USB. The manager can disable it entirely.
+// Kept in the USB schema for compatibility with older Manager releases. AP
+// availability is now controlled solely by assigning an AP action to a button.
 bool             gApFallback = true;
 uint8_t          gButton1Action = BUTTON_ACTION_PAIR; // white: open pairing
 uint8_t          gButton2Action = BUTTON_ACTION_AP;   // black: settings AP
@@ -682,7 +682,7 @@ static void managerProcessCommand(char *line) {
     gBaseRpm = newBase > 40.0f ? 45.0f : 33.3333f;
     gBattLowV = newBatteryLow;
     gLowBatteryLedAlert = newLowBatteryLed != 0;
-    gApFallback = newAp != 0;
+    gApFallback = true; // legacy `ap` token is accepted but no longer gates AP
     gButton1Action = (uint8_t)newButton1;
     gButton2Action = (uint8_t)newButton2;
     led.setBrightness(gBright);
@@ -1628,7 +1628,6 @@ void loadSettings() {
   float base = settingsPrefs.getFloat("base", 33.3333f);
   float battLow = settingsPrefs.getFloat("blow", 3.50f);
   bool lowBatteryLedAlert = settingsPrefs.getBool("lbled", true);
-  bool apFallback = settingsPrefs.getBool("apfb", true);
   uint8_t button1Action = settingsPrefs.getUChar("btn1", BUTTON_ACTION_PAIR);
   uint8_t button2Action = settingsPrefs.getUChar("btn2", BUTTON_ACTION_AP);
 
@@ -1650,7 +1649,7 @@ void loadSettings() {
                  : 33.3333f;
   gBattLowV = isfinite(battLow) && battLow >= 3.0f && battLow <= 4.0f ? battLow : 3.50f;
   gLowBatteryLedAlert = lowBatteryLedAlert;
-  gApFallback = apFallback;
+  gApFallback = true;
   gButton1Action = button1Action <= BUTTON_ACTION_MAX ? button1Action : BUTTON_ACTION_PAIR;
   gButton2Action = button2Action <= BUTTON_ACTION_MAX ? button2Action : BUTTON_ACTION_AP;
 }
@@ -1678,7 +1677,7 @@ void saveSettings() {
   settingsPrefs.putFloat("base", gBaseRpm);
   settingsPrefs.putFloat("blow", gBattLowV);
   settingsPrefs.putBool("lbled", gLowBatteryLedAlert);
-  settingsPrefs.putBool("apfb", gApFallback);
+  settingsPrefs.putBool("apfb", true); // migrate any older disabled setting
   settingsPrefs.putUChar("btn1", gButton1Action);
   settingsPrefs.putUChar("btn2", gButton2Action);
 }
@@ -1961,16 +1960,9 @@ void executeReceiverButtonAction(uint8_t action, uint8_t button) {
       if (settingsActive) {
         stopSettingsMode();
         snprintf(detail, sizeof(detail), "button %u closed settings AP", button);
-      } else if (gApFallback) {
+      } else {
         startSettingsMode();
         snprintf(detail, sizeof(detail), "button %u opened settings AP", button);
-      } else {
-        snprintf(detail, sizeof(detail), "button %u AP action blocked; enable emergency AP", button);
-        debugBootLog(detail);
-#if USB_MANAGER_ENABLE
-        managerSendEvent("ap_disabled", 0, detail);
-#endif
-        return;
       }
       break;
     case BUTTON_ACTION_SWAP:

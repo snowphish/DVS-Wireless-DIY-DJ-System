@@ -2,6 +2,7 @@
 .tools/
 .agents/
 .codex/
+Diagnostics/
 
 # .NET / Visual Studio build output
 **/bin/

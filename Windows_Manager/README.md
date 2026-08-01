@@ -11,8 +11,8 @@ leaving the receiver fully standalone.
 - Shows both deck links, battery gauges, RPM, 7-second RSSI/loss averages,
   packet age, pairing state, and calibration messages.
 - Edits timecode format, output gain, base speed, LED brightness, pairing
-  window, low-battery threshold, low-battery LED flashing, emergency AP
-  availability, and both physical receiver-button actions.
+  window, low-battery threshold, low-battery LED flashing, and both physical
+  receiver-button actions.
 - Starts speed-specific calibration, opens pairing, or swaps deck assignments
   over USB.
 - Records link, battery, pairing, and calibration events in the in-app Activity
@@ -55,8 +55,8 @@ behavior. DVS Manager displays **HOLDING** and notifies you to:
 ## Emergency AP
 
 The old web portal is retained as an optional recovery path. It is never needed
-for routine management. Disable **Emergency AP fallback** in Settings if the
-receiver button should not be allowed to start it.
+for routine management. The portal is available whenever either receiver
+button is assigned the **Enable / disable AP** action.
 
 ## Source build
 

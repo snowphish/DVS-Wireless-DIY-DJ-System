@@ -157,7 +157,6 @@ public partial class MainWindow : Window
                 SelectComboTag(PairWindowCombo, config.PairWindow, 1);
                 BrightnessSlider.Value = config.Brightness;
                 LowBatteryLedAlertCheck.IsChecked = config.LowBatteryLedAlert;
-                ApFallbackCheck.IsChecked = config.ApFallback;
                 Button1ActionCombo.SelectedIndex = Math.Clamp(config.Button1Action, 0, 4);
                 Button2ActionCombo.SelectedIndex = Math.Clamp(config.Button2Action, 0, 4);
             }
@@ -492,7 +491,7 @@ public partial class MainWindow : Window
             BaseRpm = GetSelectedTag(BaseRpmCombo, 33.3333),
             BatteryLow = GetSelectedTag(BatteryLowCombo, 3.50),
             LowBatteryLedAlert = LowBatteryLedAlertCheck.IsChecked == true,
-            ApFallback = ApFallbackCheck.IsChecked == true,
+            ApFallback = true,
             Button1Action = Button1ActionCombo.SelectedIndex,
             Button2Action = Button2ActionCombo.SelectedIndex
         };
@@ -523,7 +522,7 @@ public partial class MainWindow : Window
                 BaseRpm = selectedRpm,
                 BatteryLow = _config.BatteryLow,
                 LowBatteryLedAlert = _config.LowBatteryLedAlert,
-                ApFallback = _config.ApFallback,
+                ApFallback = true,
                 Button1Action = _config.Button1Action,
                 Button2Action = _config.Button2Action
             });

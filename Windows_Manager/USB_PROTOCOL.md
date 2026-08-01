@@ -98,7 +98,8 @@ Ranges:
 - `base`: 30–50; normalized to 33.3333 or 45
 - `blow`: 3.0–4.0 volts
 - `lbled`: 0 suppress low-battery LED pulses, 1 enable them
-- `ap`: 0 disabled, 1 available by receiver-button hold
+- `ap`: accepted for compatibility but ignored; AP availability is controlled
+  by the physical-button mappings
 - `btn1`, `btn2`: 0 settings AP, 1 swap decks, 2 open pairing, 3 spin
   calibration at the selected base speed, 4 disabled
 
