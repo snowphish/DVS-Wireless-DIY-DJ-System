@@ -55,7 +55,7 @@ settings appropriate to your printer and expected use.
 | 2 | Printed RX button cap | One per receiver button |
 | As needed | M2 x 4 mm self-tapping screws | Secure the TX PCBs in the transmitter cases |
 | As needed | M3 x 4 mm self-tapping screws | Secure the RX PCB in the receiver case |
-| 2 | 20 x 20 mm self-adhesive pads | Fit one underneath each transmitter |
+| 4 | 20 x 20 mm self-adhesive pads | Fit two underneath each transmitter |
 | As needed | 26-30 AWG insulated hookup wire | Use multiple colors for power, ground, and signals |
 | As needed | Heat-shrink tubing | Insulate exposed wiring and provide strain relief |
 | As needed | Hot glue or electronics-safe adhesive | Secure wiring without covering USB ports or buttons |
