@@ -138,3 +138,13 @@ the ESP32-S3 internal pull-ups.
   unattenuated phono preamp.
 - Verify both deck directions, stopped-platter stability, battery readings,
   calibration, and both DAC outputs before performance use.
+
+## Assembled case previews
+
+Completed receiver, transmitter, and storage cases:
+
+![Assembled DIY DVS receiver, transmitter, and storage cases](20260801_180339.jpg)
+
+Internal view of two transmitter pucks and the dual-deck receiver:
+
+![Internal view of the assembled DIY DVS transmitters and receiver](20260801_213429.jpg)
