@@ -53,11 +53,12 @@ settings appropriate to your printer and expected use.
 | 2 sets | Printed TX base and lid | One set per turntable |
 | 1 set | Printed RX base and lid | Receiver enclosure |
 | 2 | Printed RX button cap | One per receiver button |
-| As needed | M2 screws | For boards or sensors where the case provides mounting holes |
+| As needed | M2 x 4 mm self-tapping screws | Secure the TX PCBs in the transmitter cases |
+| As needed | M3 x 4 mm self-tapping screws | Secure the RX PCB in the receiver case |
+| 2 | 20 x 20 mm self-adhesive pads | Fit one underneath each transmitter |
 | As needed | 26-30 AWG insulated hookup wire | Use multiple colors for power, ground, and signals |
 | As needed | Heat-shrink tubing | Insulate exposed wiring and provide strain relief |
 | As needed | Hot glue or electronics-safe adhesive | Secure wiring without covering USB ports or buttons |
-| Optional | Rubber feet | Prevent the receiver from sliding |
 
 ### Cables and external equipment
 
@@ -137,4 +138,3 @@ the ESP32-S3 internal pull-ups.
   unattenuated phono preamp.
 - Verify both deck directions, stopped-platter stability, battery readings,
   calibration, and both DAC outputs before performance use.
-
